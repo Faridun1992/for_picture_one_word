@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\Complain;
-
 return [
 
     /*
@@ -16,7 +14,7 @@ return [
     |
     */
 
-    'title' => 'Imho.club',
+    'title' => 'AdminLTE 3',
     'title_prefix' => '',
     'title_postfix' => '',
 
@@ -65,12 +63,12 @@ return [
     |
     */
 
-    'logo' => '<b>imho.club</b>',
-    'logo_img' => 'assets/img/icons/logo.svg',
+    'logo' => '<b>Admin</b>LTE',
+    'logo_img' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
     'logo_img_xl_class' => 'brand-image-xs',
-    'logo_img_alt' => 'imho.club',
+    'logo_img_alt' => 'Admin Logo',
 
     /*
     |--------------------------------------------------------------------------
@@ -88,7 +86,7 @@ return [
     'auth_logo' => [
         'enabled' => false,
         'img' => [
-            'path' => 'assets/project_x.png',
+            'path' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
             'alt' => 'Auth Logo',
             'class' => '',
             'width' => 50,
@@ -115,8 +113,8 @@ return [
         'enabled' => true,
         'mode' => 'fullscreen',
         'img' => [
-            'path' => 'assets/project_x.png',
-            'alt' => 'Project-X Preloader Image',
+            'path' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
+            'alt' => 'AdminLTE Preloader Image',
             'effect' => 'animation__shake',
             'width' => 60,
             'height' => 60,
@@ -223,7 +221,7 @@ return [
     'sidebar_collapse_remember_no_transition' => true,
     'sidebar_scrollbar_theme' => 'os-theme-light',
     'sidebar_scrollbar_auto_hide' => 'l',
-    'sidebar_nav_accordion' => false,
+    'sidebar_nav_accordion' => true,
     'sidebar_nav_animation_speed' => 300,
 
     /*
@@ -259,29 +257,34 @@ return [
     */
 
     'use_route_url' => false,
-    'dashboard_url' => '/admin',
+    'dashboard_url' => 'home',
     'logout_url' => 'logout',
     'login_url' => 'login',
-    'register_url' => 'email-send',
+    'register_url' => 'register',
     'password_reset_url' => 'password/reset',
     'password_email_url' => 'password/email',
-    'profile_url' => 'admin/profile',
+    'profile_url' => false,
+    'disable_darkmode_routes' => false,
 
     /*
     |--------------------------------------------------------------------------
-    | Laravel Mix
+    | Laravel Asset Bundling
     |--------------------------------------------------------------------------
     |
-    | Here we can enable the Laravel Mix option for the admin panel.
+    | Here we can enable the Laravel Asset Bundling option for the admin panel.
+    | Currently, the next modes are supported: 'mix', 'vite' and 'vite_js_only'.
+    | When using 'vite_js_only', it's expected that your CSS is imported using
+    | JavaScript. Typically, in your application's 'resources/js/app.js' file.
+    | If you are not using any of these, leave it as 'false'.
     |
-    | For detailed instructions you can look the laravel mix section here:
+    | For detailed instructions you can look the asset bundling section here:
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Other-Configuration
     |
     */
 
-    'enabled_laravel_mix' => false,
-    'laravel_mix_css_path' => 'css/app.css',
-    'laravel_mix_js_path' => 'js/app.js',
+    'laravel_asset_bundling' => false,
+    'laravel_css_path' => 'css/app.css',
+    'laravel_js_path' => 'js/app.js',
 
     /*
     |--------------------------------------------------------------------------
@@ -296,82 +299,46 @@ return [
     */
 
     'menu' => [
+        // Navbar items:
+        [
+            'type' => 'navbar-search',
+            'text' => 'search',
+            'topnav_right' => true,
+        ],
         [
             'type' => 'fullscreen-widget',
             'topnav_right' => true,
         ],
 
         // Sidebar items:
-        /*[
-            'text' => 'Главная страница',
-            'url' => 'admin',
+        [
+            'type' => 'sidebar-menu-search',
+            'text' => 'search',
+        ],
+        [
+            'text' => 'blog',
+            'url' => 'admin/blog',
+            'can' => 'manage-blog',
+        ],
+        [
+            'text' => 'pages',
+            'url' => 'admin/pages',
             'icon' => 'far fa-fw fa-file',
             'label' => 4,
             'label_color' => 'success',
-        ],*/
-        ['header' => 'Пользователи'],
-        [
-            'text' => 'Сотрудники',
-            'route' => 'admin.users.index',
-            'active' => ['admin/users/create', 'regex:@^admin/users/[0-9]+/edit$@'],
-            'icon' => 'fas fa-fw fa-users',
         ],
+        ['header' => 'account_settings'],
         [
-            'text' => 'Пользователи',
-            'route' => 'admin.clients.index',
-            'active' => ['admin/clients/create', 'regex:@^admin/clients/[0-9]+/edit$@'],
+            'text' => 'profile',
+            'url' => 'admin/settings',
             'icon' => 'fas fa-fw fa-user',
         ],
-        ['header' => 'Emails'],
         [
-            'text' => 'Emails',
-            'route' => 'admin.emails.index',
-            'active' => ['admin/emails*'],
-            'icon' => 'fas fa-envelope',
-        ],
-        ['header' => 'Платежи'],
-        [
-            'text' => 'Оплата подписок',
-            'route' => 'admin.payments.index',
-            'active' => ['admin/payments*'],
-            'icon' => 'fas fa-arrow-down',
-        ],
-        [
-            'text' => 'Выплаты авторам',
-            'route' => 'admin.payouts.index',
-            'active' => ['admin/payouts*'],
-            'icon' => 'fas fa-arrow-up',
-        ],
-        [
-            'text' => 'Уведомления о сбоях',
-            'route' => 'admin.payment-document-failures.index',
-            'active' => ['admin/payment-document-failures*'],
-            'icon' => 'fas fa-exclamation-triangle',
-        ],
-        [
-            'text' => 'Журнал операций',
-            'route' => 'admin.payment-events.index',
-            'active' => ['admin/payment-events*'],
-            'icon' => 'fas fa-list',
-        ],
-        ['header' => 'Сообщения о нарушениях'],
-        [
-            'text' => 'Архив нарушений',
-            'route' => 'admin.complains.archive',
-            'key' => 'complains-new',
-            'icon' => 'fas fa-archive',
-        ],
-        /*[
-            'text' => 'Роли',
-            'route' => 'admin.roles.index',
-            'icon' => 'fas fa-user-shield',
-        ],*/
-       /* [
             'text' => 'change_password',
             'url' => 'admin/settings',
             'icon' => 'fas fa-fw fa-lock',
-        ],*/
-        /*[
+        ],
+        [
             'text' => 'multilevel',
             'icon' => 'fas fa-fw fa-share',
             'submenu' => [
@@ -408,8 +375,8 @@ return [
                     'url' => '#',
                 ],
             ],
-        ],*/
-       /* ['header' => 'labels'],
+        ],
+        ['header' => 'labels'],
         [
             'text' => 'important',
             'icon_color' => 'red',
@@ -424,7 +391,7 @@ return [
             'text' => 'information',
             'icon_color' => 'cyan',
             'url' => '#',
-        ],*/
+        ],
     ],
 
     /*

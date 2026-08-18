@@ -1,0 +1,70 @@
+# Контроль того, что попадает в контекст `docker build` и, соответственно, в
+# `COPY . /var/www`. Порядок важен: сначала исключаем, ниже reinclude'им через !.
+
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# Секреты — .env подключается bind-mount'ом в compose, в образе его быть не должно
+.env
+.env.*
+!.env.example
+auth.json
+
+# Зависимости — ставятся внутри Dockerfile (composer install) из composer.lock.
+# Если не исключить — хостовый vendor перезапишет чистую установку слоя.
+vendor
+node_modules
+
+# Build-артефакты фронта — НЕ исключаем (CI rsync'ит public/build/ перед билдом)
+# public/build остаётся в контексте
+
+# Логи и рантайм-мусор Laravel (named volume storage-data при первом запуске
+# инициализируется из образа; реальные данные оттуда не нужны).
+# storage/app/** исключён целиком — после перехода на named volume в образ попадать
+# не должен (на стейдже в этой папке остались старые аплоады с эпохи bind-mount —
+# без этого правила контекст билда раздувается на сотни МБ).
+storage/app/**
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/debugbar/*
+storage/*.key
+!storage/**/.gitignore
+!storage/**/.gitkeep
+
+# Symlink public/storage → storage/app/public: docker резолвит симлинки в контексте,
+# поэтому без явного исключения storage/app/public всё равно просочится через него.
+public/storage
+
+# Bootstrap cache — регенерируется artisan *:cache в рантайме
+bootstrap/cache/*.php
+
+# Тесты не нужны в прод/стейдж-образе
+tests
+phpunit.xml
+.phpunit.cache
+.phpunit.result.cache
+
+# IDE / редакторы
+.idea
+.vscode
+.zed
+.fleet
+.phpactor.json
+
+# Docker meta — не нужен внутри образа (кроме того что уже COPY'им явно)
+docker-compose*.yml
+Makefile
+README.md
+AGENTS.md
+CLAUDE.md
+
+# Прочее
+*.log
+npm-debug.log*
+yarn-error.log
+Homestead.*
+.DS_Store

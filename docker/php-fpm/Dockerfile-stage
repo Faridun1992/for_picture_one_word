@@ -1,0 +1,75 @@
+FROM php:8.4.20-fpm
+
+ARG user
+ARG uid
+ARG gid
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libwebp-dev \
+    unzip \
+    curl \
+    gnupg2 \
+    jpegoptim \
+    optipng \
+    pngquant \
+    gifsicle \
+    libavif-bin \
+    libfcgi-bin \
+    libmagickwand-dev \
+    && pecl install imagick-3.8.1 \
+    && docker-php-ext-enable imagick \
+    && docker-php-ext-install \
+        pdo_mysql \
+        opcache \
+        pcntl \
+    && docker-php-ext-configure exif \
+    && docker-php-ext-install exif \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j$(nproc) gd \
+    && pecl install redis-6.3.0 \
+    && docker-php-ext-enable redis \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+COPY --from=composer:2.8 /usr/bin/composer /usr/local/bin/composer
+
+# Cachetool — сброс opcache без рестарта php-fpm (zero-downtime)
+RUN curl -sSLo /usr/local/bin/cachetool https://gordalina.github.io/cachetool/downloads/cachetool.phar \
+    && chmod +x /usr/local/bin/cachetool
+
+RUN groupadd -g $gid $user && \
+    useradd -u $uid -ms /bin/bash -g $user -G www-data $user
+
+# Контекст билда — корень репо (см. docker-compose-stage.yml).
+# Пути к конфигам PHP-FPM — относительно корня.
+COPY docker/php-fpm/conf.d /usr/local/etc/php/conf.d/
+COPY docker/php-fpm/fpm.d /usr/local/etc/php-fpm.d/
+
+WORKDIR /var/www
+# WORKDIR создаёт директорию от root, а композер ниже работает из-под $user
+# и должен создавать vendor/ — иначе "does not exist and could not be created"
+RUN chown $user:www-data /var/www
+
+# Слой 1: зависимости. Меняется только при изменении composer.lock —
+# docker layer cache ускоряет сборку при правках кода.
+COPY --chown=$user:www-data composer.json composer.lock /var/www/
+USER $user
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-autoloader \
+    --prefer-dist \
+    --no-interaction \
+    --no-progress
+
+# Слой 2: исходники + финальный autoload.
+# storage/ и bootstrap/cache/ перекрываются named-volume'ами в рантайме,
+# но в образе они нужны чтобы при первом запуске volume заполнился .gitkeep'ами.
+COPY --chown=$user:www-data . /var/www
+# --no-scripts: в build-фазе нет .env (монтируется в рантайме), поэтому
+# post-autoload-dump → artisan package:discover упадёт на любом сервисе,
+# который читает config() в register(). Laravel сам прогонит discover на
+# первом boot'е, bootstrap/cache/packages.php сгенерится в named volume.
+RUN composer dump-autoload --optimize --no-dev --no-interaction --no-scripts

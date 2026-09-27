@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Jobs\DeleteS3FileJob;
 use App\Services\System\EmailService;
 use App\Traits\UserSettings;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,12 +15,13 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles, UserSettings;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, UserSettings;
 
     /**
      * The attributes that are mass assignable.
@@ -80,7 +80,7 @@ class User extends Authenticatable
             'last_active_at' => 'datetime',
             'password_changed' => 'boolean',
             'email_enabled' => 'boolean',
-            'deleted' =>  'boolean',
+            'deleted' => 'boolean',
             'data' => 'json',
         ];
     }
@@ -131,9 +131,6 @@ class User extends Authenticatable
         $page->unsearchable();
     }
 
-    /**
-     * @return HasOneThrough
-     */
     public function role(): HasOneThrough
     {
         return $this->hasOneThrough(
@@ -222,25 +219,27 @@ class User extends Authenticatable
 
     /**
      * Отправка Email с восстановлением пароля
+     *
      * @throws \Exception
      */
     public function sendPasswordResetNotification($token): bool
     {
 
-        if (!$this->email)
+        if (! $this->email) {
             return false;
+        }
 
-        return (bool)app(EmailService::class)->sendMessage(
+        return (bool) app(EmailService::class)->sendMessage(
             $this->email,
             $this->id,
-            'Восстановление пароля в ' . config('app.name'),
+            'Восстановление пароля в '.config('app.name'),
             'Здравствуйте!<br><br>'
-            . 'Вы (или кто-то с вашим email) запросили восстановление пароля в ' . config('app.name') . '.<br><br>'
-            . 'Чтобы восстановить пароль, нажмите на ссылку ниже:<br><br>'
-            . 'Ссылка действительна в течение 30 минут.<br><br>'
-            . 'Если вы не запрашивали восстановление пароля — просто проигнорируйте это письмо. Пароль останется без изменений.<br><br>'
-            . 'Если у вас возникнут вопросы, наша служба поддержки всегда готова помочь: support@' . parse_url(config('app.url'), PHP_URL_HOST) . '<br><br>'
-            . 'С уважением,<br>Команда ' . config('app.name'),
+            .'Вы (или кто-то с вашим email) запросили восстановление пароля в '.config('app.name').'.<br><br>'
+            .'Чтобы восстановить пароль, нажмите на ссылку ниже:<br><br>'
+            .'Ссылка действительна в течение 30 минут.<br><br>'
+            .'Если вы не запрашивали восстановление пароля — просто проигнорируйте это письмо. Пароль останется без изменений.<br><br>'
+            .'Если у вас возникнут вопросы, наша служба поддержки всегда готова помочь: support@'.parse_url(config('app.url'), PHP_URL_HOST).'<br><br>'
+            .'С уважением,<br>Команда '.config('app.name'),
             'auth',
             config('mail.from.address'),
             config('mail.from.name'),
@@ -249,12 +248,10 @@ class User extends Authenticatable
         );
     }
 
-
     public function posts(): BelongsToMany
     {
         return $this->belongsToMany(Post::class);
     }
-
 
     public function postReads(): BelongsToMany
     {
@@ -287,7 +284,7 @@ class User extends Authenticatable
 
         $subscription = $this->getUsersSubscriptionByPage($post->page);
 
-        if (!$subscription) {
+        if (! $subscription) {
 
             return false;
 
@@ -316,14 +313,14 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class);
     }
 
-    public function succeedPayments(): hasMany
+    public function succeedPayments(): HasMany
     {
         return $this->hasMany(Payment::class)->where('status', 'succeeded');
     }
 
     public static function generateRefCode(): string
     {
-        $ref_code =Str::limit(Str::uuid()->toString(), 8,'');
+        $ref_code = Str::limit(Str::uuid()->toString(), 8, '');
 
         $exists = self::query()
             ->where('ref_code', $ref_code)
@@ -353,8 +350,7 @@ class User extends Authenticatable
 
     public function getUserSubscribersFilterAttribute(): ?string
     {
-        return match (request()->query('field'))
-        {
+        return match (request()->query('field')) {
             'email' => 'Email',
             'name' => 'Фамилия, Имя',
             'email_verified_at' => 'Дата регистрации',
@@ -368,8 +364,7 @@ class User extends Authenticatable
 
     public function getUserAdminFilterAttribute(): ?string
     {
-        return match (request()->query('filter_field'))
-        {
+        return match (request()->query('filter_field')) {
             'email' => 'Email, Фамилия, Имя',
             'slug' => 'Поддомен',
             'email_verified_at' => 'Дата регистрации',
@@ -382,7 +377,7 @@ class User extends Authenticatable
         };
     }
 
-    public function referrals(): hasMany
+    public function referrals(): HasMany
     {
         return $this->hasMany(Referral::class, 'referrer_id');
     }

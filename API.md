@@ -11,6 +11,10 @@
 
 ## Игрок
 
+### `GET /health`
+
+Полный URL: `GET /api/v1/health`. Auth: нет. Response 200: `{"status":"ok"}` для проверки доступности маршрутизации. Не проверяет БД/Redis и не раскрывает внутренние сведения. Все ошибки `/api/*` возвращают `{ "message": "...", "code": "...", "errors": {} }`; при 422 поле `errors` содержит массивы сообщений по именам полей. 5xx не раскрывают внутренний текст исключения. Основные коды: `validation_failed` (422), `unauthenticated` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `too_many_requests` (429), `internal_server_error` (5xx). Остальные web-маршруты сохраняют стандартное поведение Laravel.
+
 ### `POST /auth/guest`
 
 Auth: нет. Создаёт гостевой профиль и выдает bearer token. Request: `{"locale":"tj","device_name":"Phone"}` (device_name optional, max 100). Response 201: `{"data":{"token":"…","user":{"id":123,"locale":"tj"}}}`. Ошибки 422 locale, 429 rate limit. Повтор не идемпотентен; каждый новый токен создаёт/возвращает отдельный гостевой профиль по политике реализации.

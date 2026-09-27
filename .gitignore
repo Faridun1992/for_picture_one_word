@@ -1,5 +1,10 @@
 /.phpunit.cache
 /node_modules
+/mobile/node_modules
+/mobile/dist
+/mobile/.env
+/mobile/.env.*
+!/mobile/.env.example
 /public/build
 /public/hot
 /public/storage

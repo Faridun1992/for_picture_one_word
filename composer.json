@@ -9,7 +9,9 @@
         "ext-curl": "*",
         "ext-dom": "*",
         "ext-exif": "*",
+        "ext-fileinfo": "*",
         "ext-iconv": "*",
+        "ext-intl": "*",
         "ext-libxml": "*",
         "ext-openssl": "*",
         "ext-simplexml": "*",
@@ -18,14 +20,14 @@
         "jeroennoten/laravel-adminlte": "^3.13",
         "laravel/framework": "^13.0",
         "laravel/horizon": "^5.45",
+        "laravel/sanctum": "^4.0",
         "laravel/scout": "^11.0.0",
         "laravel/tinker": "^3.0",
         "laravel/ui": "^4.5",
         "league/flysystem-aws-s3-v3": "^3.0",
         "opcodesio/log-viewer": "^3.19",
         "predis/predis": "^2.0",
-        "spatie/laravel-permission": "^6.9",
-        "ext-fileinfo": "*"
+        "spatie/laravel-permission": "^6.9"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^4.1.3",

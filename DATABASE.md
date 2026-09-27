@@ -1,6 +1,6 @@
 # Модель данных
 
-Статус: проектирование. СУБД: MySQL 8.4 по текущему README репозитория; таблицы InnoDB, строки `utf8mb4`, время UTC. Типы указаны в терминах MySQL. Существующие `users` и таблицы Laravel нужно сверить с миграциями до написания миграций игры.
+Статус: категории TASK-021, уровни TASK-022, переводы уровней TASK-023 и метаданные изображений TASK-024 реализованы; остальные таблицы ниже остаются проектной схемой. СУБД: MySQL 8.4 по текущему README репозитория; таблицы InnoDB, строки `utf8mb4`, время UTC. Типы указаны в терминах MySQL. Существующие `users` и таблицы Laravel нужно сверить с миграциями до написания миграций игры.
 
 ## ER-связи
 
@@ -16,19 +16,27 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events н
 
 ## Таблицы MVP
 
+### Аудит существующего `users` (TASK-010 завершена)
+
+Имеющаяся и фактически применённая миграция создаёт `users` с обязательными `email` и `password`, nullable `name`/`surname`, email verification и remember token. Таблица в работающей MySQL совпадает с миграцией: 9 колонок, InnoDB, `utf8mb4_unicode_ci`, уникальный индекс email; поля `preferred_locale` и `is_guest` отсутствуют. Все четыре имеющиеся миграции отмечены применёнными.
+
+Модель `User` массово разрешает дополнительные поля (`block`, `avatar`, `nickname`, `country`, `timezone` и другие), которых нет в фактической таблице. Нужно проверить использование этих полей при изменении соответствующих функций; таблица ниже для игрового backend остаётся целевой моделью и не включает полный набор старых пользовательских атрибутов.
+
 ### `users` (существующая таблица Laravel, адаптировать после аудита)
 
 | Поле | Тип | Ограничения |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK, auto increment |
 | `name` | VARCHAR(120) | nullable для гостя |
-| `email` | VARCHAR(255) | nullable, unique (уточнить существующую схему) |
-| `password` | VARCHAR(255) | nullable для гостя |
+| `email` | VARCHAR(255) | в текущей миграции NOT NULL, UNIQUE; целевая схема требует отдельного решения для гостя |
+| `password` | VARCHAR(255) | в текущей миграции NOT NULL; целевая схема требует отдельного решения для гостя |
 | `preferred_locale` | VARCHAR(16) | NOT NULL, default `ru` |
 | `is_guest` | BOOLEAN | NOT NULL, default true |
 | `created_at`, `updated_at` | TIMESTAMP | стандарт Laravel |
 
-Гостевая авторизация: случайный высокоэнтропийный bearer token хранится в стандартной таблице токенов Laravel Sanctum; в клиенте токен хранится в защищённом хранилище ОС. Не хранить сырой токен. Sanctum сейчас отсутствует в `composer.json`; добавить его как отдельную согласованную задачу перед реализацией API авторизации.
+Мобильная авторизация будет использовать высокоэнтропийные bearer tokens Laravel Sanctum; Sanctum 4.3.3 установлен, `HasApiTokens` подключён к User, и таблица `personal_access_tokens` добавлена стандартной миграцией. Сырой токен хранится только у клиента в защищённом хранилище ОС и показывается сервером один раз. Способ связать гостя с текущей моделью `User` требует продуктового решения; до него не менять nullable у `email`/`password` и не создавать endpoint гостевой авторизации.
+
+Runtime PHP в local/stage/prod образах включает `intl` и `mbstring`; `composer.json` требует `ext-intl`. Проверено в локальном PHP 8.4 контейнере: класс `Normalizer` доступен.
 
 ### `categories`
 
@@ -48,6 +56,7 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events н
 | `category_id` | BIGINT UNSIGNED | FK → categories.id, cascade delete |
 | `locale` | VARCHAR(16) | NOT NULL |
 | `name` | VARCHAR(120) | NOT NULL |
+| `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
 Уникальность `(category_id, locale)`, индекс `(locale, name)`. Отдельная таблица нужна для локализованных категорий.
 
@@ -59,7 +68,7 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events н
 | `category_id` | BIGINT UNSIGNED | FK → categories.id, restrict delete |
 | `sequence` | INT UNSIGNED | NOT NULL |
 | `difficulty` | TINYINT UNSIGNED | NOT NULL, диапазон 1–5 валидируется приложением |
-| `status` | VARCHAR(16) | NOT NULL, default `draft`; `published`, `disabled`, `archived` |
+| `status` | VARCHAR(16) | NOT NULL, default `draft`; `published`, `disabled`, `archived`; Eloquent enum cast ограничивает состояния в модели |
 | `published_at` | TIMESTAMP | nullable |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
@@ -77,7 +86,7 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events н
 | `letter_tiles` | JSON | NOT NULL, массив строк-графем; правильные + лишние плитки |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(level_id, locale)`. Индекс `level_id`. JSON нужен для локализованного набора графем переменной длины; его валидация производится приложением. Ответ не отдаётся игровому endpoint.
+Уникальность `(level_id, locale)` одновременно поддерживает поиск переводов по `level_id`. JSON нужен для локализованного набора графем переменной длины; его валидация производится приложением. `answer_normalized` рассчитывается серверным нормализатором и никогда не отдаётся игровому endpoint.
 
 ### `level_images`
 
@@ -93,7 +102,7 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events н
 | `variants` | JSON | nullable, ключи размеров/форматов |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(level_id, position)`, индекс `level_id`. Проверка ровно четырёх позиций — при публикации, так как SQL CHECK не выражает число дочерних строк.
+Уникальность `(level_id, position)` одновременно поддерживает выборку изображений уровня. `LevelImageSetValidator` проверяет позиции ровно `[1, 2, 3, 4]` перед публикацией; одна только уникальность не гарантирует, что нет пропусков.
 
 ### `user_level_progress`
 

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Four Pictures One Word</string>
+    <string name="title_activity_main">Four Pictures One Word</string>
+    <string name="package_name">com.example.fourpictureoneword</string>
+    <string name="custom_url_scheme">com.example.fourpictureoneword</string>
+</resources>

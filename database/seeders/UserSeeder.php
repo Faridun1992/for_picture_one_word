@@ -29,12 +29,6 @@ class UserSeeder extends Seeder
             ])->assignRole('Admin');
 
 
-            User::create([
-                'name' => 'Moderator',
-                'password' => 123123123,
-                'email' => 'moderator@mail.com'
-            ])->assignRole('Moderator');
-
         }
 
     }

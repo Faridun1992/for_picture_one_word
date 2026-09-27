@@ -14,7 +14,6 @@
         "ext-openssl": "*",
         "ext-simplexml": "*",
         "ext-zend-opcache": "*",
-        "glushkovds/phpclickhouse-laravel": "^2.1",
         "intervention/image": "^3.11",
         "jeroennoten/laravel-adminlte": "^3.13",
         "laravel/framework": "^13.0",
@@ -31,7 +30,7 @@
     "require-dev": {
         "barryvdh/laravel-debugbar": "^4.1.3",
         "fakerphp/faker": "^1.23",
-        "laravel/boost": "^2.4",
+        "laravel/boost": "^2.10",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
@@ -59,7 +58,8 @@
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@php artisan boost:update --ansi"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""

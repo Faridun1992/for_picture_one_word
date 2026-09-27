@@ -41,6 +41,12 @@ class Level extends Model
         return $this->hasMany(LevelImage::class);
     }
 
+    /** @return HasMany<PlayerLevelProgress, $this> */
+    public function playerProgress(): HasMany
+    {
+        return $this->hasMany(PlayerLevelProgress::class);
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

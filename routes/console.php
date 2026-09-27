@@ -1,29 +1,26 @@
 <?php
 
-
-use App\Console\Commands\{
-    ChangeStorageClassCommand,
-    CreateEmailForNotCreatedEmailCommand,
-    EmailSendCommand,
-    GenerateYandexVideoToken,
-    PayoutToAuthorsCommand,
-    PaymentProcessCommand,
-    PostPublishCommand,
-    RemoveInactiveSessionsCommand,
-    RemoveNotConfirmedAccount,
-    RemoveVideoNotUsingCommand,
-    PruneTariffCountsCommand,
-    RemoveFreeSubscriptionCommand,
-    SendSubscriptionNotificationCommand,
-    SendDailyReportsCommand,
-    SyncFiscalReceiptsCommand,
-    SyncPendingPayoutsCommand,
-    TempStorageRemoveCommand,
-    UpdateFinanceStatisticCommand,
-    UpdatePageSubscribersCountCommand
-};
+use App\Console\Commands\ChangeStorageClassCommand;
+use App\Console\Commands\CreateEmailForNotCreatedEmailCommand;
+use App\Console\Commands\EmailSendCommand;
+use App\Console\Commands\GenerateYandexVideoToken;
+use App\Console\Commands\PaymentProcessCommand;
+use App\Console\Commands\PayoutToAuthorsCommand;
+use App\Console\Commands\PostPublishCommand;
+use App\Console\Commands\PruneTariffCountsCommand;
+use App\Console\Commands\PurgeExpiredIdempotencyRequests;
+use App\Console\Commands\RemoveFreeSubscriptionCommand;
+use App\Console\Commands\RemoveInactiveSessionsCommand;
+use App\Console\Commands\RemoveNotConfirmedAccount;
+use App\Console\Commands\RemoveVideoNotUsingCommand;
+use App\Console\Commands\SendDailyReportsCommand;
+use App\Console\Commands\SendSubscriptionNotificationCommand;
+use App\Console\Commands\SyncFiscalReceiptsCommand;
+use App\Console\Commands\SyncPendingPayoutsCommand;
+use App\Console\Commands\TempStorageRemoveCommand;
+use App\Console\Commands\UpdateFinanceStatisticCommand;
+use App\Console\Commands\UpdatePageSubscribersCountCommand;
 use Illuminate\Support\Facades\Schedule;
-
 
 Schedule::command(SendDailyReportsCommand::class)->dailyAt('00:00')->runInBackground();
 Schedule::command(PaymentProcessCommand::class)->everyFiveMinutes()->withoutOverlapping(10);
@@ -44,3 +41,4 @@ Schedule::command(SyncPendingPayoutsCommand::class)->everyFiveMinutes()->without
 Schedule::command(SyncFiscalReceiptsCommand::class)->everyFifteenMinutes()->withoutOverlapping(20)->runInBackground();
 Schedule::command(RemoveFreeSubscriptionCommand::class)->hourly()->withoutOverlapping()->runInBackground();
 Schedule::command(PruneTariffCountsCommand::class)->dailyAt('03:17')->withoutOverlapping()->runInBackground();
+Schedule::command(PurgeExpiredIdempotencyRequests::class)->dailyAt('03:30')->withoutOverlapping();

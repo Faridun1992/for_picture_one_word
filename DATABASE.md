@@ -1,6 +1,6 @@
 # Модель данных
 
-Статус: категории TASK-021, уровни TASK-022, переводы TASK-023, изображения TASK-024 и схема/модель `players` TASK-020 реализованы. MySQL миграция `players` ожидает применения в локальном Docker-окружении; тесты мигрируют схему в SQLite. Прогресс, кошелёк и идемпотентность ниже — целевая модель. СУБД: MySQL 8.4 по README; игровые строки используют `utf8mb4`, время UTC.
+Статус: категории TASK-021, уровни TASK-022, переводы TASK-023, изображения TASK-024, `players` TASK-020, прогресс TASK-025, кошелёк TASK-026 и идемпотентность TASK-027 реализованы. Миграции игровых таблиц проверены feature-тестами на SQLite; применение в локальную MySQL ожидает доступности Docker. СУБД: MySQL 8.4 по README; игровые строки используют `utf8mb4`, время UTC.
 
 ## ER-связи
 
@@ -41,6 +41,9 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events н
 | `id` | BIGINT UNSIGNED | PK, auto increment |
 | `user_id` | BIGINT UNSIGNED | nullable, UNIQUE, FK → users.id, `ON DELETE SET NULL` |
 | `locale` | VARCHAR(16) | NOT NULL, default `ru`; значение из `game.supported_locales` |
+| `sound_enabled` | BOOLEAN | NOT NULL, default true |
+| `haptics_enabled` | BOOLEAN | NOT NULL, default true |
+| `theme` | VARCHAR(8) | NOT NULL, default `system`; `system`, `light`, `dark` |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
 Каждая игровая сущность может существовать без регистрации. При привязке к аккаунту обновляется `players.user_id` у существующей строки: `players.id` не меняется, поэтому прогресс, кошелёк и история сохраняются. Уникальный nullable `user_id` задаёт максимум одного игрового профиля на аккаунт. Не использовать физический device ID как идентичность и не создавать гостю строку в `users`.
@@ -115,7 +118,7 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 
 Уникальность `(level_id, position)` одновременно поддерживает выборку изображений уровня. `LevelImageSetValidator` проверяет позиции ровно `[1, 2, 3, 4]` перед публикацией; одна только уникальность не гарантирует, что нет пропусков.
 
-### `player_level_progress`
+### `player_level_progress` (TASK-025)
 
 | Поле | Тип | Ограничения |
 |---|---|---|
@@ -129,9 +132,9 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `completed_at` | TIMESTAMP | nullable |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(player_id, level_id)` защищает от дублирования прогресса. Индекс `(player_id, status, level_id)` для продолжения игры и `(level_id, status)` для статистики.
+Уникальность `(player_id, level_id)` защищает от повторной записи прогресса для одного уровня. Индекс `(player_id, status, level_id)` поддерживает выбор незавершённого уровня игрока, `(level_id, status)` — агрегирование статистики по уровню. `status` принимает `in_progress` или `completed` и приводится к `PlayerLevelProgressStatus`; completed timestamp заполняет только серверная игровая логика. Удаление игрока удаляет его прогресс, удаление уровня с прогрессом запрещено.
 
-### `player_wallets`
+### `player_wallets` (TASK-026)
 
 | Поле | Тип | Ограничения |
 |---|---|---|
@@ -141,7 +144,7 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 
 Баланс — кэш суммы журнала, обновляемый только серверной транзакцией; клиентское значение никогда не принимается.
 
-### `wallet_transactions`
+### `wallet_transactions` (TASK-026)
 
 | Поле | Тип | Ограничения |
 |---|---|---|
@@ -157,6 +160,8 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 
 Уникальность `(player_id, reason, reference_type, reference_id)` для одноразовой награды/списания по игровой сущности; уникальность `(player_id, idempotency_key)` для клиентских операций (NULL допускается для серверных записей). Индекс `(player_id, created_at)`.
 
+`WalletTransaction` — append-only модель: Eloquent update/delete запрещены; база ограничивает удаление игрока, пока остаётся его финансовая история. Правильность `amount`, `balance_after`, баланса кошелька и выдачи валюты обеспечивает только будущая серверная транзакционная логика (TASK-032/033); константы наград и цен этим этапом не задаются.
+
 ### `idempotency_requests`
 
 | Поле | Тип | Ограничения |
@@ -168,9 +173,10 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `request_hash` | CHAR(64) | NOT NULL |
 | `response_status` | SMALLINT UNSIGNED | nullable до завершения |
 | `response_body` | JSON | nullable до завершения |
+| `completed_at` | TIMESTAMP | nullable до финального результата |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(player_id, key)`, индекс `created_at` для очистки старых ключей. Повтор ключа с иным hash получает 409. Запись и игровая операция атомарны.
+Уникальность `(player_id, key)` предотвращает повторное выполнение одного ключа для игрока. Индекс `(completed_at, id)` поддерживает пакетную очистку. Завершённый результат хранится 30 дней от `completed_at`; после срока ежедневная очистка может удалить или архивировать его. Незавершённые строки (`completed_at IS NULL`) исключены из TTL независимо от `created_at` и не удаляются этой очисткой. Повтор ключа в течение срока с теми же operation и canonical request hash возвращает сохранённые HTTP status/body; другое содержимое получает 409 `idempotency_key_reused`. Запись ключа, бизнес-изменения и финальный ответ фиксируются атомарно.
 
 ## Ограничения и миграция
 

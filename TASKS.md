@@ -4,13 +4,13 @@
 
 ## Current State
 
-Current phase: Phase 2 — Data and Catalog
-Current task: TASK-025 — create player level progress and resume indexes
-Last completed task: TASK-020
-Blocked tasks: none in the current phase; economy and daily-challenge decisions are listed below for their later phases
-Next recommended task: implement TASK-025 using `player_id` as the gameplay owner
+Current phase: Phase 3 — Gameplay API and Security
+Current task: TASK-032/033 — implement level attempts and hints after economy decision
+Last completed task: TASK-035
+Blocked tasks: TASK-032/033 await coin reward and hint cost/effect decisions; TASK-036 depends on those endpoints
+Next recommended task: confirm server-side level reward and hint costs/effects, then implement TASK-032/033
 Last updated: 2026-09-27
-Git state: changes are committed locally on `main`; push is pending GitHub HTTPS authentication
+Git state: implementation, tests and documentation have uncommitted changes on `main`; the branch was already ahead of origin by three commits, and the previous push attempt lacked GitHub HTTPS credentials
 
 ## Phase 0 — Анализ и проектирование
 
@@ -42,20 +42,20 @@ Git state: changes are committed locally on `main`; push is pending GitHub HTTPS
 - [x] TASK-022 — Создать уровни и правила статусов публикации
 - [x] TASK-023 — Создать переводы уровней и Unicode нормализацию ответов
 - [x] TASK-024 — Создать метаданные изображений и проверку ровно четырёх позиций
-- [ ] TASK-025 — Создать прогресс игроков и индексы продолжения игры (FK на `players`, после TASK-020)
-- [ ] TASK-026 — Создать кошельки и неизменяемый журнал валюты (FK на `players`, после TASK-020)
-- [ ] TASK-027 — Создать хранилище ключей идемпотентности и политику срока хранения (FK на `players`, после TASK-020)
-- [ ] TASK-028 — Добавить фабрики/тестовые данные для каталогов и гостя
+- [x] TASK-025 — Создать прогресс игроков и индексы продолжения игры (FK на `players`, после TASK-020)
+- [x] TASK-026 — Создать кошельки и неизменяемый журнал валюты (FK на `players`, после TASK-020)
+- [x] TASK-027 — Создать хранилище ключей идемпотентности и политику срока хранения (30 дней после завершения; незавершённые строки не истекают)
+- [x] TASK-028 — Добавить фабрики/тестовые данные для каталогов и гостя
 
 ## Phase 3 — Игровой API и безопасность
 
-- [ ] TASK-030 — Реализовать создание гостевой сессии и отзыв токена для `Player` (после TASK-020)
-- [ ] TASK-031 — Реализовать категории и выдачу опубликованных уровней
-- [ ] TASK-032 — Реализовать проверку попытки и одноразовое начисление награды
-- [ ] TASK-033 — Реализовать подсказки с атомарным списанием и идемпотентностью
-- [ ] TASK-034 — Реализовать прогресс и настройки пользователя
-- [ ] TASK-035 — Добавить авторизацию, policies, throttling и валидацию API
-- [ ] TASK-036 — Написать API-тесты Unicode, ответов, повторов, подсказок и изоляции пользователей
+- [x] TASK-030 — Реализовать создание гостевой сессии и отзыв токена для `Player` (после TASK-020)
+- [x] TASK-031 — Реализовать категории и выдачу опубликованных уровней
+- [!] TASK-032 — Реализовать проверку попытки и одноразовое начисление награды
+- [!] TASK-033 — Реализовать подсказки с атомарным списанием и идемпотентностью
+- [x] TASK-034 — Реализовать прогресс и настройки текущего `Player`
+- [x] TASK-035 — Добавить авторизацию, policies, throttling и валидацию API
+- [!] TASK-036 — Написать API-тесты Unicode, ответов, повторов, подсказок и изоляции пользователей (зависит от реализации TASK-032/033)
 
 ## Phase 4 — Web-admin и изображения
 
@@ -99,7 +99,8 @@ Git state: changes are committed locally on `main`; push is pending GitHub HTTPS
 
 ## Блокирующие решения
 
-- TASK-025/026/027/030 зависят от завершения TASK-020: их игровые данные и мобильная токен-аутентификация используют `players`, не `users`.
+- TASK-032/033: требуется утвердить награду за правильный уровень, цену и точный эффект подсказок `reveal_letter` и `remove_wrong_letters`. Idempotency retention (30 дней) реализован в TASK-027.
+- TASK-036 зависит от игровых endpoint TASK-032/033; полный API contract тестируется после их реализации.
 - Перед экономикой: размер награды за уровень и цена/точный эффект подсказок.
 - Перед daily phase: часовой пояс и правила смены дня.
 - Перед аккаунтной фазой: выбрать mobile sign-in providers и восстановление доступа на другом устройстве; связь существующего `Player` с `User` уже зафиксирована в ADR-001.

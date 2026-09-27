@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             LevelSeeder::class,
             PlayerSeeder::class,
+            PlayerWalletSeeder::class,
+            PlayerLevelProgressSeeder::class,
         ]);
     }
 }

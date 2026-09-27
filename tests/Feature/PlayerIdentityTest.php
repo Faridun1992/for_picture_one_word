@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Player;
+use App\Models\PlayerLevelProgress;
+use App\Models\PlayerWallet;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +26,9 @@ class PlayerIdentityTest extends TestCase
     public function test_guest_player_can_be_linked_to_an_account_without_changing_identity(): void
     {
         $player = Player::factory()->create(['locale' => 'tj']);
+        $progress = PlayerLevelProgress::factory()->for($player)->create(['attempt_count' => 3]);
+        PlayerWallet::factory()->for($player)->create(['balance' => 45]);
+        $transaction = WalletTransaction::factory()->for($player)->create(['balance_after' => 45]);
         $user = $this->createUser();
 
         $player->user()->associate($user)->save();
@@ -33,6 +39,9 @@ class PlayerIdentityTest extends TestCase
             'locale' => 'tj',
         ]);
         $this->assertSame($player->id, $user->player()->value('id'));
+        $this->assertSame($progress->id, $player->refresh()->levelProgress()->value('id'));
+        $this->assertSame(45, $player->wallet()->value('balance'));
+        $this->assertSame($transaction->id, $player->walletTransactions()->value('id'));
     }
 
     public function test_deleting_an_account_keeps_its_player_as_a_guest(): void
@@ -67,6 +76,22 @@ class PlayerIdentityTest extends TestCase
         $this->withToken($token)->getJson('/api/v1/test/player-only')
             ->assertOk()
             ->assertJsonPath('player_id', $player->id);
+    }
+
+    public function test_auth_helper_returns_player_for_a_player_token(): void
+    {
+        $player = Player::factory()->create();
+        $token = $player->createToken('test')->plainTextToken;
+        Route::middleware(['auth:sanctum', 'player'])
+            ->get('/api/v1/test/authenticated-player', fn () => response()->json([
+                'class' => auth()->user()::class,
+                'id' => auth()->user()->id,
+            ]));
+
+        $this->withToken($token)->getJson('/api/v1/test/authenticated-player')
+            ->assertOk()
+            ->assertJsonPath('class', Player::class)
+            ->assertJsonPath('id', $player->id);
     }
 
     public function test_user_token_cannot_access_player_routes(): void

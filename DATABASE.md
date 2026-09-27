@@ -86,7 +86,8 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `published_at` | TIMESTAMP | nullable |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Индексы `(status, sequence, id)` для выдачи, `(category_id, status, sequence)`. `sequence` не unique: допускает сортировку/перестановку через временные значения. API упорядочивает по `(sequence,id)`.
+Индексы `(status, sequence, id)` для выдачи, `(category_id, status, sequence)`. `sequence` не unique: API упорядочивает по `(sequence,id)`, а TASK-045 блокирует опубликованный набор, переносит его на временные значения и затем присваивает плотный порядок `1..N` в транзакции. Существующие дубликаты порядка разрешаются по ID.
+Публикация и архивирование используют существующий `status` и не требуют миграции. Архивирование сохраняет `published_at`, изображения, переводы и ссылки истории прохождения.
 
 ### `level_translations`
 
@@ -113,12 +114,15 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `storage_key` | VARCHAR(512) | NOT NULL |
 | `mime_type` | VARCHAR(100) | NOT NULL |
 | `width`, `height` | INT UNSIGNED | nullable до обработки |
-| `variants` | JSON | nullable, ключи размеров/форматов |
+| `variants` | JSON | nullable, `thumbnail`/`display` с private storage key, исходным MIME и размерами |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
 Уникальность `(level_id, position)` одновременно поддерживает выборку изображений уровня. `LevelImageSetValidator` проверяет позиции ровно `[1, 2, 3, 4]` перед публикацией; одна только уникальность не гарантирует, что нет пропусков.
+Оригиналы и варианты хранятся через Laravel Storage. Варианты генерируются асинхронно; их JSON-метаданные обновляются после успешной записи файлов. Изменение структуры таблицы не потребовалось.
 
 ### `player_level_progress` (TASK-025/033)
+
+Admin-статистика TASK-046 агрегируется по `level_id` и текущим строкам прогресса; персональные атрибуты Player не извлекаются. Дополнительная схема для неё не требуется.
 
 | Поле | Тип | Ограничения |
 |---|---|---|

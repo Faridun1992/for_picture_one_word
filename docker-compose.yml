@@ -52,6 +52,36 @@ services:
         networks:
             - app-network
 
+    supervisor:
+        container_name: supervisor_game
+        environment:
+            TZ: Asia/Dushanbe
+            PROJECT_USER: ${PROJECT_USER}
+        build:
+            context: ./
+            dockerfile: ./docker/supervisor/Dockerfile
+            args:
+                user: ${PROJECT_USER}
+                uid: ${UID}
+                gid: ${GID}
+        volumes:
+            - ./:/var/www
+            - ./docker/supervisor/conf.d:/etc/supervisor/conf.d:ro
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        healthcheck:
+            test: ["CMD-SHELL", "supervisorctl status laravel-horizon | grep -q RUNNING"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 60s
+        restart: unless-stopped
+        networks:
+            - app-network
+
     mysql:
         container_name: mysql_game
         image: mysql:8.4.8

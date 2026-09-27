@@ -36,4 +36,26 @@ return [
         'disable_interstitial' => true,
         'unlimited_free_hints' => false,
     ],
+
+    'level_images' => [
+        'disk' => 'local',
+        'directory' => 'levels',
+        'max_file_kilobytes' => 5120,
+        'min_width' => 320,
+        'min_height' => 320,
+        'max_width' => 4096,
+        'max_height' => 4096,
+        'variants' => [
+            'thumbnail' => [
+                'max_width' => 320,
+                'max_height' => 320,
+                'quality' => 80,
+            ],
+            'display' => [
+                'max_width' => 1280,
+                'max_height' => 1280,
+                'quality' => 85,
+            ],
+        ],
+    ],
 ];

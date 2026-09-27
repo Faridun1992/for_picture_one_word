@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
@@ -13,23 +12,24 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        if (!User::count()) {
-
-            User::create([
-                'name' => 'SuperAdmin',
-                'password' => 123123123,
-                'email' => 'super_admin@mail.com'
-            ])->assignRole('Super Admin');
-
-
-            User::create([
-                'name' => 'Admin',
-                'password' => 123123123,
-                'email' => 'admin@mail.com'
-            ])->assignRole('Admin');
-
-
+        if (! app()->environment(['local', 'testing'])) {
+            return;
         }
 
+        User::query()->firstOrCreate(
+            ['email' => 'super_admin@mail.com'],
+            [
+                'name' => 'SuperAdmin',
+                'password' => '123123123',
+            ]
+        )->assignRole('Super Admin');
+
+        User::query()->firstOrCreate(
+            ['email' => 'admin@mail.com'],
+            [
+                'name' => 'Admin',
+                'password' => '123123123',
+            ]
+        )->assignRole('Admin');
     }
 }

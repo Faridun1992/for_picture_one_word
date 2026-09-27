@@ -38,24 +38,33 @@ class LevelResource extends JsonResource
             'answer_length' => count(app(AnswerNormalizer::class)->splitGraphemes($translation->answer_display)),
             'locale' => $translation->locale,
             'letter_tiles' => $translation->letter_tiles,
-            'images' => $this->images->map(fn (LevelImage $image): array => [
-                'position' => $image->position,
-                'url' => $this->imageUrl($image),
-                'width' => $image->width,
-                'height' => $image->height,
-            ])->values()->all(),
+            'images' => $this->images->map(function (LevelImage $image): array {
+                $displayVariant = data_get($image->variants, 'display', []);
+                $thumbnailVariant = data_get($image->variants, 'thumbnail', []);
+                $displayKey = $displayVariant['storage_key'] ?? $image->storage_key;
+
+                return [
+                    'position' => $image->position,
+                    'url' => $this->imageUrl($image->storage_disk, $displayKey),
+                    'thumbnail_url' => isset($thumbnailVariant['storage_key'])
+                        ? $this->imageUrl($image->storage_disk, $thumbnailVariant['storage_key'])
+                        : null,
+                    'width' => $displayVariant['width'] ?? $image->width,
+                    'height' => $displayVariant['height'] ?? $image->height,
+                ];
+            })->values()->all(),
             'content_version' => substr(hash('sha256', implode('|', $timestamps)), 0, 24),
         ];
     }
 
-    private function imageUrl(LevelImage $image): string
+    private function imageUrl(string $diskName, string $storageKey): string
     {
-        $disk = Storage::disk($image->storage_disk);
+        $disk = Storage::disk($diskName);
 
         if ($disk->providesTemporaryUrls()) {
-            return $disk->temporaryUrl($image->storage_key, now()->addHours(24));
+            return $disk->temporaryUrl($storageKey, now()->addHours(24));
         }
 
-        return $disk->url($image->storage_key);
+        return $disk->url($storageKey);
     }
 }

@@ -156,6 +156,7 @@ services:
         container_name: supervisor
         environment:
           TZ: Asia/Dushanbe
+          PROJECT_USER: ${PROJECT_USER}
         build:
           context: ./
           dockerfile: ./docker/supervisor/Dockerfile

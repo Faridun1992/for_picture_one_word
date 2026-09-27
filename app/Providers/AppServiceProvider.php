@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Models\Player;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::define('access-admin-panel', static fn (User $user): bool => $user->hasRole(['Admin', 'Super Admin']));
+
         RateLimiter::for('game-api', function (Request $request): array {
             $player = $request->user();
             $playerKey = $player instanceof Player ? 'player:'.$player->getAuthIdentifier() : 'guest:'.$request->ip();

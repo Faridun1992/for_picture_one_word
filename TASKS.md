@@ -4,13 +4,13 @@
 
 ## Current State
 
-Current phase: Phase 3 — Gameplay API and Security (complete)
-Current task: Awaiting user instructions before Phase 4
-Last completed task: TASK-036
+Current phase: Phase 4 — Web-admin and images (complete)
+Current task: TASK-050 — guest auth and local token storage (not started)
+Last completed task: TASK-046
 Blocked tasks: none
-Next recommended task: wait for the user's instructions before starting Phase 4
+Next recommended task: TASK-050 — guest auth and local token storage
 Last updated: 2026-09-27
-Git state: implementation, tests and documentation have uncommitted changes on `main`; the branch was already ahead of origin by three commits, and the previous push attempt lacked GitHub HTTPS credentials
+Git state: TASK-040–046 changes are uncommitted on `main`; base is commit `4503563`
 
 ## Phase 0 — Анализ и проектирование
 
@@ -59,13 +59,13 @@ Git state: implementation, tests and documentation have uncommitted changes on `
 
 ## Phase 4 — Web-admin и изображения
 
-- [ ] TASK-040 — Проверить роли и доступы существующей AdminLTE панели
-- [ ] TASK-041 — Создать редактор уровней и переводов
-- [ ] TASK-042 — Добавить безопасную загрузку четырёх изображений через Laravel Storage
-- [ ] TASK-043 — Добавить очередь генерации вариантов изображения
-- [ ] TASK-044 — Реализовать проверку полноты и публикацию/архивирование уровня
-- [ ] TASK-045 — Реализовать перестановку уровней без конфликтов порядка
-- [ ] TASK-046 — Добавить экран статистики прохождения для администратора
+- [x] TASK-040 — Проверить роли и доступы существующей AdminLTE панели: `/home` доступен только ролям Admin/Super Admin, открытая регистрация отключена; роли и локальные демо-учётки сидируются безопасно и повторяемо
+- [x] TASK-041 — Создать редактор черновиков уровней и переводов RU/TJ/EN с транзакционным сохранением
+- [x] TASK-042 — Добавить безопасную загрузку четырёх изображений через Laravel Storage (private disk, MIME/size/dimension/decode validation, transactional metadata replacement)
+- [x] TASK-043 — Добавить очередь генерации вариантов изображения (Horizon queue `images`, 320/1280 variants, local worker)
+- [x] TASK-044 — Реализовать проверку полноты и публикацию/архивирование уровня
+- [x] TASK-045 — Реализовать перестановку уровней без конфликтов порядка
+- [x] TASK-046 — Добавить экран статистики прохождения для администратора
 
 ## Phase 5 — Мобильный MVP
 
@@ -110,4 +110,4 @@ Git state: implementation, tests and documentation have uncommitted changes on `
 - Награды: правильный ответ +10; завершение загадки +50; daily challenge +100; streak из 5/10 ответов +20/+50; milestone за 50/100/500/1000 загадок +150/+300/+300/+500 (каждый порог один раз).
 - Подсказки: `reveal_letter` — 30; `remove_wrong_letters` — 40 и удаление 2 неверных плиток (число конфигурируется); `reveal_answer` — 100 Coins и завершение загадки.
 - Rewarded Ad: +50 после подтверждения просмотра, максимум 5 в сутки на Player. Interstitial: ориентир после 4–6 загадок, cooldown 90 секунд; исключения при активной загадке, запуске приложения, сразу после rewarded ad; Premium отключает Interstitial и не предоставляет неограниченные бесплатные hints.
-- Реализуемые суммы и количество подсказки централизованы в `config/game.php`; выполнение daily, streak, рекламной выдачи и Premium остаётся в профильных задачах. Phase 4 не начинать до следующих инструкций пользователя.
+- Реализуемые суммы и количество подсказки централизованы в `config/game.php`; выполнение daily, streak, рекламной выдачи и Premium остаётся в профильных задачах.

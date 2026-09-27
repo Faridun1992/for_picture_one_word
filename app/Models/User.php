@@ -8,14 +8,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -128,18 +126,6 @@ class User extends Authenticatable
         }
 
         $page->unsearchable();
-    }
-
-    public function role(): HasOneThrough
-    {
-        return $this->hasOneThrough(
-            Role::class,
-            ModelHasRole::class,
-            'model_id',
-            'id',
-            'id',
-            'role_id'
-        )->where('model_type', self::class);
     }
 
     public function getFullNameAttribute(): string

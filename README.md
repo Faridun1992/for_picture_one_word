@@ -123,7 +123,7 @@ TODO:
 
 ## Точки входа и структура
 - HTTP‑вход: public/index.php (обслуживается nginx или php -S через artisan serve)
-- Роуты: routes/web.php подключает роуты из routes/includes/{auth,admin,user,guest}.php
+- Web-роуты объявлены в routes/web.php; AdminLTE dashboard доступен только ролям Admin и Super Admin.
 - Контроллеры: app/Http/Controllers (пространства имен Admin, User, Guest)
 - Представления: resources/views (Blade)
 - Ассеты: resources/js и resources/css (группированы по guest/admin/user), собираются Vite (vite.config.js автодетектит)
@@ -148,7 +148,7 @@ TODO:
   - Добавить 127.0.0.1 project-x.loc в hosts,
   - Обновить vite.config.js -> server.hmr.host на localhost, или
   - Соответственно настроить APP_URL и прокси.
-- Очереди: предоставлен контейнер supervisor для запуска воркеров в Docker. Мониторинг очередей доступен через Laravel Horizon (php artisan horizon).
+- Очереди: локальный Docker Compose запускает `supervisor_game` с Laravel Horizon; задачи обработки изображений выполняются отдельным worker на очереди `images`. Мониторинг доступен через Laravel Horizon (`php artisan horizon`).
 - Кэширование/Сессии: по умолчанию настроены на Redis в .env.example.
 
 ## Тесты

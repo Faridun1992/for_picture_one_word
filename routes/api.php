@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\V1\CategoryIndexController;
 use App\Http\Controllers\Api\V1\GuestSessionController;
+use App\Http\Controllers\Api\V1\LevelAttemptController;
+use App\Http\Controllers\Api\V1\LevelHintController;
 use App\Http\Controllers\Api\V1\LevelIndexController;
 use App\Http\Controllers\Api\V1\LevelShowController;
 use App\Http\Controllers\Api\V1\PlayerProgressController;
@@ -26,6 +28,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/categories', CategoryIndexController::class);
         Route::get('/levels', LevelIndexController::class);
         Route::get('/levels/{level}', LevelShowController::class);
+        Route::post('/levels/{level}/attempts', LevelAttemptController::class);
+        Route::post('/levels/{level}/hints', LevelHintController::class);
         Route::get('/progress', PlayerProgressController::class);
         Route::get('/me', PlayerShowController::class);
         Route::patch('/me/settings', PlayerSettingsController::class);

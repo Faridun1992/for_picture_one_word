@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Game\AnswerNormalizer;
 use Database\Factories\LevelTranslationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,16 @@ class LevelTranslation extends Model
         'answer_display',
         'letter_tiles',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(static function (LevelTranslation $translation): void {
+            $translation->setAttribute(
+                'answer_normalized',
+                app(AnswerNormalizer::class)->normalize((string) $translation->answer_display),
+            );
+        });
+    }
 
     /** @return BelongsTo<Level, $this> */
     public function level(): BelongsTo

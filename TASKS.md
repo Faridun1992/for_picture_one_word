@@ -4,11 +4,11 @@
 
 ## Current State
 
-Current phase: Phase 3 — Gameplay API and Security
-Current task: TASK-032/033 — implement level attempts and hints after economy decision
-Last completed task: TASK-035
-Blocked tasks: TASK-032/033 await coin reward and hint cost/effect decisions; TASK-036 depends on those endpoints
-Next recommended task: confirm server-side level reward and hint costs/effects, then implement TASK-032/033
+Current phase: Phase 3 — Gameplay API and Security (complete)
+Current task: Awaiting user instructions before Phase 4
+Last completed task: TASK-036
+Blocked tasks: none
+Next recommended task: wait for the user's instructions before starting Phase 4
 Last updated: 2026-09-27
 Git state: implementation, tests and documentation have uncommitted changes on `main`; the branch was already ahead of origin by three commits, and the previous push attempt lacked GitHub HTTPS credentials
 
@@ -51,11 +51,11 @@ Git state: implementation, tests and documentation have uncommitted changes on `
 
 - [x] TASK-030 — Реализовать создание гостевой сессии и отзыв токена для `Player` (после TASK-020)
 - [x] TASK-031 — Реализовать категории и выдачу опубликованных уровней
-- [!] TASK-032 — Реализовать проверку попытки и одноразовое начисление награды
-- [!] TASK-033 — Реализовать подсказки с атомарным списанием и идемпотентностью
+- [x] TASK-032 — Реализовать проверку попытки и одноразовое начисление награды (+10 за ответ, +50 за завершение, milestones 50/100/500/1000: +150/+300/+300/+500 Coins; стартовый баланс +300 Coins)
+- [x] TASK-033 — Реализовать три подсказки с атомарным списанием и идемпотентностью (`reveal_letter` 30, `remove_wrong_letters` 40, `reveal_answer` 100 Coins)
 - [x] TASK-034 — Реализовать прогресс и настройки текущего `Player`
 - [x] TASK-035 — Добавить авторизацию, policies, throttling и валидацию API
-- [!] TASK-036 — Написать API-тесты Unicode, ответов, повторов, подсказок и изоляции пользователей (зависит от реализации TASK-032/033)
+- [x] TASK-036 — Написать API-тесты Unicode, ответов, повторов, подсказок, недостатка Coins и изоляции пользователей (после TASK-032/033)
 
 ## Phase 4 — Web-admin и изображения
 
@@ -82,7 +82,7 @@ Git state: implementation, tests and documentation have uncommitted changes on `
 
 ## Phase 6 — Ежедневная игра и аналитика
 
-- [ ] TASK-060 — Утвердить правила daily challenge и награды
+- [x] TASK-060 — Утвердить правила daily challenge и награды (+100 Coins за первое прохождение; пропуск без штрафа)
 - [ ] TASK-061 — Добавить назначение и прохождение daily challenge
 - [ ] TASK-062 — Определить каталог аналитических событий и адаптер поставщика
 - [ ] TASK-063 — Передавать и проверять события начала/окончания уровня и подсказок
@@ -99,9 +99,15 @@ Git state: implementation, tests and documentation have uncommitted changes on `
 
 ## Блокирующие решения
 
-- TASK-032/033: требуется утвердить награду за правильный уровень, цену и точный эффект подсказок `reveal_letter` и `remove_wrong_letters`. Idempotency retention (30 дней) реализован в TASK-027.
-- TASK-036 зависит от игровых endpoint TASK-032/033; полный API contract тестируется после их реализации.
-- Перед экономикой: размер награды за уровень и цена/точный эффект подсказок.
+- TASK-032/033: блокирующих решений нет. Утверждённые суммы: +300 welcome, +10 правильный ответ, +50 завершение, daily +100, streak 5/10: +20/+50, milestones 50/100/500/1000: +150/+300/+300/+500 Coins; hints 30/40/100; rewarded ad +50, максимум 5/сутки. Значения централизованы в `config/game.php`. Daily/streak/rewarded-ad выполнение остаётся в отдельных задачах.
 - Перед daily phase: часовой пояс и правила смены дня.
 - Перед аккаунтной фазой: выбрать mobile sign-in providers и восстановление доступа на другом устройстве; связь существующего `Player` с `User` уже зафиксирована в ADR-001.
 - Перед monetization phase: страны запуска, провайдеры покупок/рекламы и юридические требования.
+
+## Экономика MVP (утверждена 2026-09-27)
+
+- Валюта одна: Coins. Стартовый баланс нового Player: +300 один раз.
+- Награды: правильный ответ +10; завершение загадки +50; daily challenge +100; streak из 5/10 ответов +20/+50; milestone за 50/100/500/1000 загадок +150/+300/+300/+500 (каждый порог один раз).
+- Подсказки: `reveal_letter` — 30; `remove_wrong_letters` — 40 и удаление 2 неверных плиток (число конфигурируется); `reveal_answer` — 100 Coins и завершение загадки.
+- Rewarded Ad: +50 после подтверждения просмотра, максимум 5 в сутки на Player. Interstitial: ориентир после 4–6 загадок, cooldown 90 секунд; исключения при активной загадке, запуске приложения, сразу после rewarded ad; Premium отключает Interstitial и не предоставляет неограниченные бесплатные hints.
+- Реализуемые суммы и количество подсказки централизованы в `config/game.php`; выполнение daily, streak, рекламной выдачи и Premium остаётся в профильных задачах. Phase 4 не начинать до следующих инструкций пользователя.

@@ -31,6 +31,7 @@ class Player extends Authenticatable
         return $this->hasMany(PlayerLevelProgress::class);
     }
 
+    /** @return HasOne<PlayerWallet, $this> */
     public function wallet(): HasOne
     {
         return $this->hasOne(PlayerWallet::class);

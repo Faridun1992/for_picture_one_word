@@ -6,7 +6,6 @@ use App\LevelStatus;
 use App\Models\Category;
 use App\Models\Level;
 use App\Models\LevelTranslation;
-use App\Services\Game\AnswerNormalizer;
 use Illuminate\Database\Seeder;
 
 class LevelSeeder extends Seeder
@@ -41,10 +40,6 @@ class LevelSeeder extends Seeder
                     'answer_display' => $answer,
                     'letter_tiles' => $letterTiles,
                 ]);
-                $translation->setAttribute(
-                    'answer_normalized',
-                    app(AnswerNormalizer::class)->normalize($answer),
-                );
                 $translation->save();
             }
         }

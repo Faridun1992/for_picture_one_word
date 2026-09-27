@@ -28,7 +28,10 @@ return new class extends Migration
             $table->string('idempotency_key', 80)->nullable();
             $table->timestamp('created_at');
 
-            $table->unique(['player_id', 'reason', 'reference_type', 'reference_id']);
+            $table->unique(
+                ['player_id', 'reason', 'reference_type', 'reference_id'],
+                'wallet_transactions_player_reason_reference_unique',
+            );
             $table->unique(['player_id', 'idempotency_key']);
             $table->index(['player_id', 'created_at']);
         });

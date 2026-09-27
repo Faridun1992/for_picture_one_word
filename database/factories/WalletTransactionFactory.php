@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Player;
 use App\Models\WalletTransaction;
 use App\WalletTransactionReason;
+use App\WalletTransactionReferenceType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -24,7 +25,7 @@ class WalletTransactionFactory extends Factory
             'amount' => 10,
             'balance_after' => 10,
             'reason' => WalletTransactionReason::LevelReward,
-            'reference_type' => 'level',
+            'reference_type' => WalletTransactionReferenceType::Level,
             'reference_id' => fake()->unique()->numberBetween(1, 1000000),
             'idempotency_key' => null,
             'created_at' => now(),

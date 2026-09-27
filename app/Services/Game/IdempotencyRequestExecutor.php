@@ -14,7 +14,7 @@ class IdempotencyRequestExecutor
 {
     /**
      * @param  array<string, mixed>  $payload
-     * @param  Closure(): array{status: int, body: array<string, mixed>}  $operationCallback
+     * @param  Closure(IdempotencyRequest): array{status: int, body: array<string, mixed>}  $operationCallback
      */
     public function execute(
         Player $player,
@@ -27,6 +27,8 @@ class IdempotencyRequestExecutor
 
         try {
             return DB::transaction(function () use ($player, $key, $operation, $requestHash, $operationCallback): JsonResponse {
+                Player::query()->whereKey($player->id)->lockForUpdate()->firstOrFail();
+
                 $existing = $player->idempotencyRequests()
                     ->where('key', $key)
                     ->lockForUpdate()
@@ -42,7 +44,7 @@ class IdempotencyRequestExecutor
                     'request_hash' => $requestHash,
                 ]);
 
-                $result = $operationCallback();
+                $result = $operationCallback($record);
 
                 if (! isset($result['status'], $result['body']) || $result['status'] < 100 || $result['status'] > 599) {
                     throw new InvalidArgumentException('The idempotent operation must return a valid HTTP status and response body.');

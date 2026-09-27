@@ -29,7 +29,17 @@ class GuestSessionApiTest extends TestCase
         $this->assertIsString($token);
         $this->assertSame(Player::class, PersonalAccessToken::query()->findOrFail($tokenId)->tokenable_type);
         $this->assertDatabaseHas('players', ['id' => $playerId, 'locale' => 'tj', 'user_id' => null]);
-        $this->assertDatabaseHas('player_wallets', ['player_id' => $playerId, 'balance' => 0]);
+        $this->assertDatabaseHas('player_wallets', [
+            'player_id' => $playerId,
+            'balance' => 300,
+        ]);
+        $this->assertDatabaseHas('wallet_transactions', [
+            'player_id' => $playerId,
+            'amount' => 300,
+            'reason' => 'welcome_reward',
+            'reference_type' => 'player_welcome',
+            'reference_id' => $playerId,
+        ]);
         $this->assertDatabaseCount('users', 0);
     }
 

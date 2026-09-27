@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\WalletTransactionReason;
+use App\WalletTransactionReferenceType;
 use Database\Factories\WalletTransactionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -54,6 +55,7 @@ class WalletTransaction extends Model
             'amount' => 'integer',
             'balance_after' => 'integer',
             'reason' => WalletTransactionReason::class,
+            'reference_type' => WalletTransactionReferenceType::class,
             'reference_id' => 'integer',
             'created_at' => 'immutable_datetime',
         ];

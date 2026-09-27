@@ -15,9 +15,11 @@ class PlayerLevelProgress extends Model
 
     /** @var list<string> */
     protected $fillable = [
+        'level_id',
         'status',
         'attempt_count',
         'hints_used',
+        'hint_state',
         'started_at',
         'completed_at',
     ];
@@ -41,6 +43,7 @@ class PlayerLevelProgress extends Model
             'status' => PlayerLevelProgressStatus::class,
             'attempt_count' => 'integer',
             'hints_used' => 'integer',
+            'hint_state' => 'array',
             'started_at' => 'immutable_datetime',
             'completed_at' => 'immutable_datetime',
         ];

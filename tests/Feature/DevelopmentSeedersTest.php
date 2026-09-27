@@ -33,8 +33,14 @@ class DevelopmentSeedersTest extends TestCase
         $this->assertDatabaseCount('level_translations', 3);
         $this->assertDatabaseCount('players', 1);
         $this->assertDatabaseCount('player_wallets', 1);
+        $this->assertDatabaseCount('wallet_transactions', 1);
         $this->assertDatabaseCount('player_level_progress', 1);
         $this->assertDatabaseHas('players', ['locale' => 'ru']);
         $this->assertDatabaseHas('level_translations', ['answer_display' => 'ГУРБА']);
+        $this->assertDatabaseHas('wallet_transactions', [
+            'reason' => 'welcome_reward',
+            'amount' => 300,
+            'reference_type' => 'player_welcome',
+        ]);
     }
 }

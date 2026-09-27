@@ -28,6 +28,15 @@ class ApiExceptionResponder
             );
         }
 
+        if ($exception instanceof ApiException) {
+            return $this->response(
+                message: $exception->getMessage(),
+                code: $exception->errorCode,
+                status: $exception->status,
+                meta: $exception->meta,
+            );
+        }
+
         if ($exception instanceof AuthenticationException) {
             return $this->response('Unauthenticated.', 'unauthenticated', 401);
         }
@@ -62,17 +71,27 @@ class ApiExceptionResponder
         return $this->response('Server error.', 'internal_server_error', 500);
     }
 
-    /** @param array<string, mixed>|null $errors */
+    /**
+     * @param  array<string, mixed>|null  $errors
+     * @param  array<string, mixed>  $meta
+     */
     private function response(
         string $message,
         string $code,
         int $status,
         ?array $errors = null,
+        array $meta = [],
     ): JsonResponse {
-        return response()->json([
+        $body = [
             'message' => $message,
             'code' => $code,
             'errors' => (object) ($errors ?? []),
-        ], $status);
+        ];
+
+        if ($meta !== []) {
+            $body['meta'] = $meta;
+        }
+
+        return response()->json($body, $status);
     }
 }

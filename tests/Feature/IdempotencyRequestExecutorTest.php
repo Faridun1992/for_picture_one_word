@@ -34,7 +34,7 @@ class IdempotencyRequestExecutorTest extends TestCase
         });
 
         $this->assertSame(200, $first->getStatusCode());
-        $this->assertSame($first->getContent(), $replay->getContent());
+        $this->assertJsonStringEqualsJsonString($first->getContent(), $replay->getContent());
         $this->assertSame(1, $calls);
         $this->assertSame(10, $wallet->fresh()->balance);
         $this->assertDatabaseCount('idempotency_requests', 1);

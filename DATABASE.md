@@ -118,7 +118,7 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 
 Уникальность `(level_id, position)` одновременно поддерживает выборку изображений уровня. `LevelImageSetValidator` проверяет позиции ровно `[1, 2, 3, 4]` перед публикацией; одна только уникальность не гарантирует, что нет пропусков.
 
-### `player_level_progress` (TASK-025)
+### `player_level_progress` (TASK-025/033)
 
 | Поле | Тип | Ограничения |
 |---|---|---|
@@ -128,11 +128,12 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `status` | VARCHAR(16) | NOT NULL, default `in_progress` |
 | `attempt_count` | INT UNSIGNED | NOT NULL, default 0 |
 | `hints_used` | TINYINT UNSIGNED | NOT NULL, default 0 |
+| `hint_state` | JSON | nullable; server-owned revealed answer positions and removed wrong tiles |
 | `started_at` | TIMESTAMP | NOT NULL |
 | `completed_at` | TIMESTAMP | nullable |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(player_id, level_id)` защищает от повторной записи прогресса для одного уровня. Индекс `(player_id, status, level_id)` поддерживает выбор незавершённого уровня игрока, `(level_id, status)` — агрегирование статистики по уровню. `status` принимает `in_progress` или `completed` и приводится к `PlayerLevelProgressStatus`; completed timestamp заполняет только серверная игровая логика. Удаление игрока удаляет его прогресс, удаление уровня с прогрессом запрещено.
+Уникальность `(player_id, level_id)` защищает от повторной записи прогресса для одного уровня. Индекс `(player_id, status, level_id)` поддерживает выбор незавершённого уровня игрока, `(level_id, status)` — агрегирование статистики по уровню. `status` принимает `in_progress` или `completed` и приводится к `PlayerLevelProgressStatus`; `hint_state` обновляет только серверная игровая логика. Удаление игрока удаляет его прогресс, удаление уровня с прогрессом запрещено.
 
 ### `player_wallets` (TASK-026)
 
@@ -152,15 +153,17 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `player_id` | BIGINT UNSIGNED | FK → players.id, restrict delete |
 | `amount` | BIGINT | NOT NULL, знак плюс/минус |
 | `balance_after` | BIGINT UNSIGNED | NOT NULL |
-| `reason` | VARCHAR(32) | NOT NULL: `level_reward`, `hint_cost`, `admin_adjustment` |
-| `reference_type` | VARCHAR(32) | NOT NULL |
+| `reason` | VARCHAR(32) | NOT NULL: `level_reward`, `welcome_reward`, `milestone_reward`, `hint_cost`, `admin_adjustment` |
+| `reference_type` | VARCHAR(32) | NOT NULL: `level`, `correct_answer`, `level_completion`, `level_milestone`, `player_welcome`, `level_hint` |
 | `reference_id` | BIGINT UNSIGNED | nullable |
 | `idempotency_key` | VARCHAR(80) | nullable |
 | `created_at` | TIMESTAMP | NOT NULL |
 
 Уникальность `(player_id, reason, reference_type, reference_id)` для одноразовой награды/списания по игровой сущности; уникальность `(player_id, idempotency_key)` для клиентских операций (NULL допускается для серверных записей). Индекс `(player_id, created_at)`.
 
-`WalletTransaction` — append-only модель: Eloquent update/delete запрещены; база ограничивает удаление игрока, пока остаётся его финансовая история. Правильность `amount`, `balance_after`, баланса кошелька и выдачи валюты обеспечивает только будущая серверная транзакционная логика (TASK-032/033); константы наград и цен этим этапом не задаются.
+`WalletTransaction` — append-only модель: Eloquent update/delete запрещены; база ограничивает удаление игрока, пока остаётся его финансовая история. TASK-032/033 проводят welcome grant, rewards и списания только через серверный `WalletBalanceManager` в транзакции с row lock. Уникальность бизнес-ссылки обеспечивает одноразовые награды: ответ/завершение ссылаются на конкретный level разными `reference_type`, milestone — на порог, welcome grant — на Player, hint debit — на idempotency operation ID. Клиент не передаёт баланс, reward amount или hint price.
+
+Начальная экономика хранится в `config/game.php`: старт +300 Coins; правильный ответ +10; завершение загадки +50; milestones 50/100/500/1000 решённых загадок +150/+300/+300/+500 одноразово; daily +100 за первое прохождение конкретной задачи; streak 5/10 +20/+50; rewarded ad +50, максимум 5 в сутки. Цены подсказок: `reveal_letter` 30, `remove_wrong_letters` 40, `reveal_answer` 100 Coins; количество удаляемых неверных плиток — серверная настройка. Daily/streak/ad ledger операции добавляются соответствующими задачами.
 
 ### `idempotency_requests`
 

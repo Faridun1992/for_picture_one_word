@@ -28,14 +28,4 @@ class LevelTranslationFactory extends Factory
             'letter_tiles' => app(AnswerNormalizer::class)->splitGraphemes($answer),
         ];
     }
-
-    public function configure(): static
-    {
-        return $this->afterMaking(function (LevelTranslation $translation): void {
-            $translation->setAttribute(
-                'answer_normalized',
-                app(AnswerNormalizer::class)->normalize($translation->answer_display),
-            );
-        });
-    }
 }

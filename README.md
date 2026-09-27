@@ -152,9 +152,9 @@ TODO:
 - Кэширование/Сессии: по умолчанию настроены на Redis в .env.example.
 
 ## Тесты
-- Запуск: php artisan test
-- Или: ./vendor/bin/phpunit
-- Конфигурация PHPUnit: phpunit.xml определяет наборы Unit и Feature; APP_ENV=testing, DB_CONNECTION=mysql с базой данных "testing" по умолчанию. Убедитесь, что тестовая БД существует, или настройте env для тестов.
+- В Docker: `docker compose exec php php artisan test` (или `docker compose exec php ./vendor/bin/phpunit`). Имя хоста `mysql_game` доступно внутри Docker-сети.
+- С хоста при опубликованном MySQL порте: `DB_HOST=127.0.0.1 php artisan test` (или `DB_HOST=127.0.0.1 ./vendor/bin/phpunit`). Без переопределения хост использует Docker-only hostname `mysql_game`, который с хоста не разрешается.
+- Конфигурация PHPUnit определяет наборы Unit и Feature; `APP_ENV=testing`, `DB_CONNECTION=mysql`, база `testing`. Перед тестами убедитесь, что MySQL запущен и тестовая БД существует.
 
 ## Деплой
 - Используйте цели build-stage/dev-stage с docker-compose-stage.yml в качестве отправной точки.

@@ -4,13 +4,13 @@
 
 ## Current State
 
-Current phase: Phase 4 — Web-admin and images (complete)
-Current task: TASK-050 — guest auth and local token storage (not started)
-Last completed task: TASK-046
-Blocked tasks: none
-Next recommended task: TASK-050 — guest auth and local token storage
+Current phase: Phase 5 — Mobile MVP (in progress)
+Current task: TASK-059 — native builds and device gameplay verification (blocked)
+Last completed task: TASK-058
+Blocked tasks: TASK-059 — Windows Android Studio/SDK cannot be invoked from this WSL shell; iOS requires macOS/Xcode
+Next recommended task: TASK-059 — build through Windows Android Studio or a cloud runner and test on Android; iOS requires macOS/Xcode
 Last updated: 2026-09-27
-Git state: TASK-040–046 changes are uncommitted on `main`; base is commit `4503563`
+Git state: Phase 5 changes are uncommitted on `main`; base is commit `f821815`
 
 ## Phase 0 — Анализ и проектирование
 
@@ -69,16 +69,16 @@ Git state: TASK-040–046 changes are uncommitted on `main`; base is commit `450
 
 ## Phase 5 — Мобильный MVP
 
-- [ ] TASK-050 — Реализовать гостевую авторизацию и защищённое локальное хранение токена
-- [ ] TASK-051 — Реализовать главный экран и продолжение уровня
-- [ ] TASK-052 — Реализовать игровой экран и управление буквенными плитками
-- [ ] TASK-053 — Реализовать состояния правильного/неправильного ответа и переход уровня
-- [ ] TASK-054 — Реализовать подсказки, подтверждённый баланс и ошибки недостатка монет
-- [ ] TASK-055 — Реализовать категории и настройки языка/звука/вибрации
-- [ ] TASK-056 — Обеспечить корректную верстку safe areas, доступность и разные экраны
-- [ ] TASK-057 — Добавить локальный кэш контента и восстановление незавершённого ввода
-- [ ] TASK-058 — Добавить очередь безопасных повторов с Idempotency-Key
-- [ ] TASK-059 — Проверить сборки и игровой цикл на Android/iOS устройствах
+- [x] TASK-050 — Реализовать гостевую авторизацию и защищённое локальное хранение токена
+- [x] TASK-051 — Реализовать главный экран и продолжение уровня
+- [x] TASK-052 — Реализовать игровой экран и управление буквенными плитками
+- [x] TASK-053 — Реализовать состояния правильного/неправильного ответа и переход уровня
+- [x] TASK-054 — Реализовать подсказки, подтверждённый баланс и ошибки недостатка монет
+- [x] TASK-055 — Реализовать категории и настройки языка/звука/вибрации
+- [x] TASK-056 — Обеспечить корректную верстку safe areas, доступность и разные экраны
+- [x] TASK-057 — Добавить локальный кэш контента и восстановление незавершённого ввода
+- [x] TASK-058 — Добавить очередь безопасных повторов с Idempotency-Key
+- [!] TASK-059 — Проверить сборки и игровой цикл на Android/iOS устройствах
 
 ## Phase 6 — Ежедневная игра и аналитика
 
@@ -99,6 +99,7 @@ Git state: TASK-040–046 changes are uncommitted on `main`; base is commit `450
 
 ## Блокирующие решения
 
+- TASK-059: Android Studio (3.3 GiB) и Android SDK (1.6 GiB) установлены на Windows, но данный WSL shell не может вызвать Windows JBR/SDK binaries; iOS native build требует macOS/Xcode. `npx cap sync` для обеих платформ и Vite production build проходят. Сборку Android можно запустить в Windows Android Studio или cloud runner; затем необходима проверка игрового цикла на устройстве.
 - TASK-032/033: блокирующих решений нет. Утверждённые суммы: +300 welcome, +10 правильный ответ, +50 завершение, daily +100, streak 5/10: +20/+50, milestones 50/100/500/1000: +150/+300/+300/+500 Coins; hints 30/40/100; rewarded ad +50, максимум 5/сутки. Значения централизованы в `config/game.php`. Daily/streak/rewarded-ad выполнение остаётся в отдельных задачах.
 - Перед daily phase: часовой пояс и правила смены дня.
 - Перед аккаунтной фазой: выбрать mobile sign-in providers и восстановление доступа на другом устройстве; связь существующего `Player` с `User` уже зафиксирована в ADR-001.

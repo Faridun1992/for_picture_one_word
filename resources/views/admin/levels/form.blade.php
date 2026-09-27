@@ -25,7 +25,9 @@
                 <select id="category_id" name="category_id" class="form-control" required>
                     <option value="">Выберите категорию</option>
                     @foreach ($categories as $category)
-                        @php($categoryName = $category->translations->firstWhere('locale', 'ru')?->name ?? $category->slug)
+                        @php
+                            $categoryName = $category->translations->firstWhere('locale', 'ru')?->name ?? $category->slug;
+                        @endphp
                         <option value="{{ $category->id }}" @selected((string) old('category_id', $level?->category_id) === (string) $category->id)>
                             {{ $categoryName }} ({{ $category->slug }})
                         </option>

@@ -48,9 +48,11 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events н
 
 Каждая игровая сущность может существовать без регистрации. При привязке к аккаунту обновляется `players.user_id` у существующей строки: `players.id` не меняется, поэтому прогресс, кошелёк и история сохраняются. Уникальный nullable `user_id` задаёт максимум одного игрового профиля на аккаунт. Не использовать физический device ID как идентичность и не создавать гостю строку в `users`.
 
-Laravel Sanctum использует полиморфный `personal_access_tokens.tokenable_type/tokenable_id`. Для мобильной игры токен выпускает аутентифицируемая модель `Player` с `HasApiTokens`; web session и существующая модель `User` остаются отдельными. Игровые маршруты должны принимать только principal типа `Player`. Сырой bearer token возвращается один раз и хранится на устройстве в защищённом хранилище ОС.
+Laravel Sanctum использует полиморфный `personal_access_tokens.tokenable_type/tokenable_id`. Для мобильной игры токен выпускает аутентифицируемая модель `Player` с `HasApiTokens`; web session и существующая модель `User` остаются отдельными. Игровые маршруты должны принимать только principal типа `Player`. Сырой bearer token возвращается один раз и хранится на устройстве в защищённом хранилище ОС: iOS Keychain (`ThisDeviceOnly`), Android — AES-GCM ciphertext в SharedPreferences с ключом Android Keystore. В браузерном режиме токен существует только в памяти страницы, `localStorage` и `sessionStorage` не используются.
 
 Runtime PHP в local/stage/prod образах включает `intl` и `mbstring`; `composer.json` требует `ext-intl`. Проверено в локальном PHP 8.4 контейнере: класс `Normalizer` доступен.
+
+Мобильные TASK-057/058 хранят несекретные снимки профиля/прогресса, каталога и игрового контента, локальный черновик ответа и ожидающее действие с `Idempotency-Key` в IndexedDB устройства. Это не серверная БД и не источник истины для баланса или результата; bearer token туда не записывается. Изменения схемы API/БД для кэша и повтора не нужны.
 
 ### `categories`
 

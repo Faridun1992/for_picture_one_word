@@ -27,7 +27,8 @@
         "league/flysystem-aws-s3-v3": "^3.0",
         "opcodesio/log-viewer": "^3.19",
         "predis/predis": "^2.0",
-        "spatie/laravel-permission": "^6.9"
+        "spatie/laravel-permission": "^6.9",
+        "ext-mbstring": "*"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^4.1.3",

@@ -1,15 +1,16 @@
 # Модель данных
 
-Статус: категории TASK-021, уровни TASK-022, переводы уровней TASK-023 и метаданные изображений TASK-024 реализованы; остальные таблицы ниже остаются проектной схемой. СУБД: MySQL 8.4 по текущему README репозитория; таблицы InnoDB, строки `utf8mb4`, время UTC. Типы указаны в терминах MySQL. Существующие `users` и таблицы Laravel нужно сверить с миграциями до написания миграций игры.
+Статус: категории TASK-021, уровни TASK-022, переводы TASK-023, изображения TASK-024 и схема/модель `players` TASK-020 реализованы. MySQL миграция `players` ожидает применения в локальном Docker-окружении; тесты мигрируют схему в SQLite. Прогресс, кошелёк и идемпотентность ниже — целевая модель. СУБД: MySQL 8.4 по README; игровые строки используют `utf8mb4`, время UTC.
 
 ## ER-связи
 
 ```text
 categories 1 ── * levels 1 ── * level_translations
                          └── 1 ── 4 level_images
-users 1 ── 1 user_wallets 1 ── * wallet_transactions
-users 1 ── * user_level_progress * ── 1 levels
-users 1 ── * idempotency_requests
+users 0..1 ── 0..1 players 1 ── 1 player_wallets 1 ── * wallet_transactions
+players 1 ── * player_level_progress * ── 1 levels
+players 1 ── * idempotency_requests
+users/players 1 ── * personal_access_tokens (polymorphic tokenable)
 ```
 
 Daily challenges, achievements, leaderboard snapshots, purchases и ad events не входят в MVP и добавляются в своих фазах.
@@ -18,23 +19,33 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events н
 
 ### Аудит существующего `users` (TASK-010 завершена)
 
-Имеющаяся и фактически применённая миграция создаёт `users` с обязательными `email` и `password`, nullable `name`/`surname`, email verification и remember token. Таблица в работающей MySQL совпадает с миграцией: 9 колонок, InnoDB, `utf8mb4_unicode_ci`, уникальный индекс email; поля `preferred_locale` и `is_guest` отсутствуют. Все четыре имеющиеся миграции отмечены применёнными.
+Имеющаяся миграция создаёт `users` с обязательными `email` и `password`, nullable `name`/`surname`, email verification и remember token. Таблица в работающей MySQL совпадает с миграцией: 9 колонок, InnoDB, `utf8mb4_unicode_ci`, уникальный индекс email; поля `preferred_locale` и `is_guest` отсутствуют. Миграции Sanctum, каталога, переводов и изображений применены; новая миграция `players` не изменяет `users`.
 
-Модель `User` массово разрешает дополнительные поля (`block`, `avatar`, `nickname`, `country`, `timezone` и другие), которых нет в фактической таблице. Нужно проверить использование этих полей при изменении соответствующих функций; таблица ниже для игрового backend остаётся целевой моделью и не включает полный набор старых пользовательских атрибутов.
+Модель `User` массово разрешает дополнительные поля (`block`, `avatar`, `nickname`, `country`, `timezone` и другие), которых нет в фактической таблице. Нужно проверить использование этих полей при изменении соответствующих функций. `users` остаётся сущностью web-учётной записи; игровые данные и гостевой доступ принадлежат отдельному `Player`.
 
-### `users` (существующая таблица Laravel, адаптировать после аудита)
+### `users` (существующая таблица Laravel)
 
 | Поле | Тип | Ограничения |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK, auto increment |
-| `name` | VARCHAR(120) | nullable для гостя |
-| `email` | VARCHAR(255) | в текущей миграции NOT NULL, UNIQUE; целевая схема требует отдельного решения для гостя |
-| `password` | VARCHAR(255) | в текущей миграции NOT NULL; целевая схема требует отдельного решения для гостя |
-| `preferred_locale` | VARCHAR(16) | NOT NULL, default `ru` |
-| `is_guest` | BOOLEAN | NOT NULL, default true |
+| `name` | VARCHAR(255) | nullable, web-учётная запись |
+| `surname` | VARCHAR(255) | nullable, web-учётная запись |
+| `email` | VARCHAR(255) | NOT NULL, UNIQUE; не ослаблять для гостевой игры |
+| `password` | VARCHAR(255) | NOT NULL; не создавать фиктивные значения для гостя |
 | `created_at`, `updated_at` | TIMESTAMP | стандарт Laravel |
 
-Мобильная авторизация будет использовать высокоэнтропийные bearer tokens Laravel Sanctum; Sanctum 4.3.3 установлен, `HasApiTokens` подключён к User, и таблица `personal_access_tokens` добавлена стандартной миграцией. Сырой токен хранится только у клиента в защищённом хранилище ОС и показывается сервером один раз. Способ связать гостя с текущей моделью `User` требует продуктового решения; до него не менять nullable у `email`/`password` и не создавать endpoint гостевой авторизации.
+### `players` (TASK-020)
+
+| Поле | Тип | Ограничения |
+|---|---|---|
+| `id` | BIGINT UNSIGNED | PK, auto increment |
+| `user_id` | BIGINT UNSIGNED | nullable, UNIQUE, FK → users.id, `ON DELETE SET NULL` |
+| `locale` | VARCHAR(16) | NOT NULL, default `ru`; значение из `game.supported_locales` |
+| `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
+
+Каждая игровая сущность может существовать без регистрации. При привязке к аккаунту обновляется `players.user_id` у существующей строки: `players.id` не меняется, поэтому прогресс, кошелёк и история сохраняются. Уникальный nullable `user_id` задаёт максимум одного игрового профиля на аккаунт. Не использовать физический device ID как идентичность и не создавать гостю строку в `users`.
+
+Laravel Sanctum использует полиморфный `personal_access_tokens.tokenable_type/tokenable_id`. Для мобильной игры токен выпускает аутентифицируемая модель `Player` с `HasApiTokens`; web session и существующая модель `User` остаются отдельными. Игровые маршруты должны принимать только principal типа `Player`. Сырой bearer token возвращается один раз и хранится на устройстве в защищённом хранилище ОС.
 
 Runtime PHP в local/stage/prod образах включает `intl` и `mbstring`; `composer.json` требует `ext-intl`. Проверено в локальном PHP 8.4 контейнере: класс `Normalizer` доступен.
 
@@ -104,12 +115,12 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 
 Уникальность `(level_id, position)` одновременно поддерживает выборку изображений уровня. `LevelImageSetValidator` проверяет позиции ровно `[1, 2, 3, 4]` перед публикацией; одна только уникальность не гарантирует, что нет пропусков.
 
-### `user_level_progress`
+### `player_level_progress`
 
 | Поле | Тип | Ограничения |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK |
-| `user_id` | BIGINT UNSIGNED | FK → users.id, cascade delete |
+| `player_id` | BIGINT UNSIGNED | FK → players.id, cascade delete |
 | `level_id` | BIGINT UNSIGNED | FK → levels.id, restrict delete |
 | `status` | VARCHAR(16) | NOT NULL, default `in_progress` |
 | `attempt_count` | INT UNSIGNED | NOT NULL, default 0 |
@@ -118,13 +129,13 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `completed_at` | TIMESTAMP | nullable |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(user_id, level_id)` защищает от дублирования прогресса. Индекс `(user_id, status, level_id)` для продолжения игры и `(level_id, status)` для статистики.
+Уникальность `(player_id, level_id)` защищает от дублирования прогресса. Индекс `(player_id, status, level_id)` для продолжения игры и `(level_id, status)` для статистики.
 
-### `user_wallets`
+### `player_wallets`
 
 | Поле | Тип | Ограничения |
 |---|---|---|
-| `user_id` | BIGINT UNSIGNED | PK и FK → users.id, cascade delete |
+| `player_id` | BIGINT UNSIGNED | PK и FK → players.id, cascade delete |
 | `balance` | BIGINT UNSIGNED | NOT NULL, default 0 |
 | `updated_at` | TIMESTAMP | NOT NULL |
 
@@ -135,7 +146,7 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | Поле | Тип | Ограничения |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK |
-| `user_id` | BIGINT UNSIGNED | FK → users.id, restrict delete |
+| `player_id` | BIGINT UNSIGNED | FK → players.id, restrict delete |
 | `amount` | BIGINT | NOT NULL, знак плюс/минус |
 | `balance_after` | BIGINT UNSIGNED | NOT NULL |
 | `reason` | VARCHAR(32) | NOT NULL: `level_reward`, `hint_cost`, `admin_adjustment` |
@@ -144,14 +155,14 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `idempotency_key` | VARCHAR(80) | nullable |
 | `created_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(user_id, reason, reference_type, reference_id)` для одноразовой награды/списания по игровой сущности; уникальность `(user_id, idempotency_key)` для клиентских операций (NULL допускается для серверных записей). Индекс `(user_id, created_at)`.
+Уникальность `(player_id, reason, reference_type, reference_id)` для одноразовой награды/списания по игровой сущности; уникальность `(player_id, idempotency_key)` для клиентских операций (NULL допускается для серверных записей). Индекс `(player_id, created_at)`.
 
 ### `idempotency_requests`
 
 | Поле | Тип | Ограничения |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK |
-| `user_id` | BIGINT UNSIGNED | FK → users.id, cascade delete |
+| `player_id` | BIGINT UNSIGNED | FK → players.id, cascade delete |
 | `key` | VARCHAR(80) | NOT NULL |
 | `operation` | VARCHAR(80) | NOT NULL |
 | `request_hash` | CHAR(64) | NOT NULL |
@@ -159,11 +170,11 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `response_body` | JSON | nullable до завершения |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(user_id, key)`, индекс `created_at` для очистки старых ключей. Повтор ключа с иным hash получает 409. Запись и игровая операция атомарны.
+Уникальность `(player_id, key)`, индекс `created_at` для очистки старых ключей. Повтор ключа с иным hash получает 409. Запись и игровая операция атомарны.
 
 ## Ограничения и миграция
 
-- Все FK имеют явный тип, согласованный с реальной `users.id`.
+- FK игровых данных ссылаются на `players.id`; аккаунтная связь `players.user_id` ссылается на существующий `users.id`.
 - Мягкое удаление уровня реализуется статусом `archived`, не `deleted_at`, чтобы сохранять ссылки прогресса.
 - Не создаём отдельные таблицы `hints`/`user_coins`: использование подсказок находится в прогрессе, движение валюты — в ledger.
 - До миграций проверяются текущие users/permissions/jobs/cache migrations и СУБД конфигурация. Не менять уже созданные пользователем миграции без необходимости.

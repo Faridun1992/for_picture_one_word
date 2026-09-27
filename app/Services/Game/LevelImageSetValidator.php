@@ -4,7 +4,7 @@ namespace App\Services\Game;
 
 class LevelImageSetValidator
 {
-    private const EXPECTED_POSITIONS = [1, 2, 3, 4];
+    private const array EXPECTED_POSITIONS = [1, 2, 3, 4];
 
     /** @param list<int|string> $positions */
     public function hasExactlyFourPositions(array $positions): bool

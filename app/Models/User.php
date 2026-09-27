@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Jobs\DeleteS3FileJob;
 use App\Services\System\EmailService;
-use App\Traits\UserSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,7 +20,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, UserSettings;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -169,6 +168,11 @@ class User extends Authenticatable
     public function page(): HasOne
     {
         return $this->hasOne(UserPage::class);
+    }
+
+    public function player(): HasOne
+    {
+        return $this->hasOne(Player::class);
     }
 
     public function pages(): BelongsToMany

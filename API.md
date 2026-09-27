@@ -1,6 +1,6 @@
 # REST API v1
 
-Статус: контракт проектирования. Базовый URL задаётся конфигурацией окружения, например `/api/v1`. JSON UTF-8. Время ISO 8601 UTC. Ответы ошибок единообразны: `{"message":"...","code":"...","errors":{}}`. Токен — `Authorization: Bearer …`. Все игровые маршруты ограничиваются по IP и user ID.
+Статус: контракт проектирования. Базовый URL задаётся конфигурацией окружения, например `/api/v1`. JSON UTF-8. Время ISO 8601 UTC. Ответы ошибок единообразны: `{"message":"...","code":"...","errors":{}}`. Токен — `Authorization: Bearer …`. Игровой bearer token принадлежит `Player`; все игровые маршруты ограничиваются по IP и player ID. Существующая web-аутентификация `User` не даёт доступ к игровым маршрутам.
 
 ## Общие правила
 
@@ -17,7 +17,9 @@
 
 ### `POST /auth/guest`
 
-Auth: нет. Создаёт гостевой профиль и выдает bearer token. Request: `{"locale":"tj","device_name":"Phone"}` (device_name optional, max 100). Response 201: `{"data":{"token":"…","user":{"id":123,"locale":"tj"}}}`. Ошибки 422 locale, 429 rate limit. Повтор не идемпотентен; каждый новый токен создаёт/возвращает отдельный гостевой профиль по политике реализации.
+Реализация: TASK-030; `auth:sanctum` вместе с middleware `player` уже доступен для игровых маршрутов.
+
+Auth: нет. Создаёт `Player` без строки в `users` и выдает bearer token, связанный с `Player` через Sanctum `tokenable`. Request: `{"locale":"tj","device_name":"Phone"}` (`device_name` optional, max 100; не используется как идентификатор). Response 201: `{"data":{"token":"…","player":{"id":123,"locale":"tj"}}}`. Ошибки 422 locale, 429 rate limit. Каждый новый вызов создаёт нового гостевого игрока; клиент должен сохранять выданный токен в защищённом хранилище.
 
 ### `DELETE /auth/session`
 
@@ -25,7 +27,7 @@ Auth: bearer. Request отсутствует. Response 204 отзывает те
 
 ### `GET /me`
 
-Auth: bearer. Response 200: ID, locale, server wallet balance, настройки, `current_level_id`. Не включает секреты. 401.
+Auth: bearer игрока. Response 200: player ID, locale, server wallet balance, настройки, `current_level_id`. Не включает секреты. 401.
 
 ### `PATCH /me/settings`
 
@@ -53,7 +55,7 @@ Auth: bearer; `Idempotency-Key` обязателен. Request: `{"type":"reveal_
 
 ### `GET /progress`
 
-Auth: bearer. Query optional `cursor`, `limit` max 100. Response 200: `current_level_id`, баланс, список прогресса с курсором, общая статистика. Только текущий пользователь. 401/422.
+Auth: bearer игрока. Query optional `cursor`, `limit` max 100. Response 200: `current_level_id`, баланс, список прогресса с курсором, общая статистика. Только текущий `Player`. 401/422.
 
 ### `GET /daily`
 
@@ -69,4 +71,4 @@ Auth: bearer. MVP: 200 с `{"data":{"available":false}}` до включения
 
 ## Будущие endpoint группы
 
-Daily start/complete, достижения, магазин, покупки, rewarded ads и leaderboard проектируются в своих фазах. Покупки подтверждаются backend через receipt платформы/подписанный webhook; клиентское сообщение об успешной покупке само по себе не зачисляет валюту. События аналитики принимаются внутренним адаптером/серверными событиями, клиент не может сообщить критичные игровые результаты.
+Player-to-User account linking, daily start/complete, достижения, магазин, покупки, rewarded ads и leaderboard проектируются в своих фазах. Привязка аккаунта должна связать `User` с существующим `Player`, сохранив player ID, токены и игровой прогресс; стратегия конфликтов аккаунтов фиксируется до реализации linking endpoint. Покупки подтверждаются backend через receipt платформы/подписанный webhook; клиентское сообщение об успешной покупке само по себе не зачисляет валюту. События аналитики принимаются внутренним адаптером/серверными событиями, клиент не может сообщить критичные игровые результаты.

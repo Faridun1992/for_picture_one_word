@@ -12,6 +12,7 @@
             <p>Управление игровым каталогом.</p>
             <a class="btn btn-primary" href="{{ route('admin.levels.index') }}">Редактор уровней</a>
             <a class="btn btn-info" href="{{ route('admin.statistics.levels') }}">Статистика игры</a>
+            <a class="btn btn-light" href="{{ route('home') }}">Лендинг игры</a>
         </div>
     </div>
 @stop

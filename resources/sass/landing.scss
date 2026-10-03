@@ -1,0 +1,9 @@
+// Landing page (public marketing site).
+// The AdminLTE dashboard keeps using resources/sass/app.scss.
+// Tokens live in landing/_tokens.scss and are loaded once through @use.
+
+@import 'landing/base';
+@import 'landing/header';
+@import 'landing/hero';
+@import 'landing/sections';
+@import 'landing/footer';

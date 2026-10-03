@@ -14,7 +14,7 @@ class AdminAccessTest extends TestCase
 
     public function test_unauthenticated_requests_are_redirected_to_login(): void
     {
-        $this->get('/home')->assertRedirect('/login');
+        $this->get('/admin/dashboard')->assertRedirect('/login');
     }
 
     public function test_users_without_an_admin_role_are_forbidden(): void
@@ -22,7 +22,7 @@ class AdminAccessTest extends TestCase
         $this->seed(RoleSeeder::class);
         $user = $this->createUser();
 
-        $this->actingAs($user)->get('/home')->assertForbidden();
+        $this->actingAs($user)->get('/admin/dashboard')->assertForbidden();
     }
 
     public function test_moderators_are_not_allowed_into_the_admin_panel(): void
@@ -31,7 +31,7 @@ class AdminAccessTest extends TestCase
         $user = $this->createUser();
         $user->assignRole('Moderator');
 
-        $this->actingAs($user)->get('/home')->assertForbidden();
+        $this->actingAs($user)->get('/admin/dashboard')->assertForbidden();
     }
 
     public function test_admin_and_super_admin_can_open_the_admin_panel(): void
@@ -42,8 +42,13 @@ class AdminAccessTest extends TestCase
             $user = $this->createUser();
             $user->assignRole($role);
 
-            $this->actingAs($user)->get('/home')->assertOk();
+            $this->actingAs($user)->get('/admin/dashboard')->assertOk();
         }
+    }
+
+    public function test_landing_page_replaces_the_old_admin_home_url(): void
+    {
+        $this->get('/home')->assertNotFound();
     }
 
     public function test_public_registration_is_disabled(): void

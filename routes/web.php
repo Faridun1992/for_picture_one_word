@@ -1,14 +1,21 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LevelController;
 use App\Http\Controllers\Admin\LevelStatisticsController;
-use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LandingController;
 
 Auth::routes(['register' => false]);
 
-Route::get('/home', [HomeController::class, 'index'])
+Route::get('/', [LandingController::class, 'index'])->name('home');
+
+Route::get('/{locale}', [LandingController::class, 'index'])
+    ->whereIn('locale', config('game.supported_locales'))
+    ->name('home.locale');
+
+Route::get('/admin/dashboard', DashboardController::class)
     ->middleware(['auth', 'role:Admin|Super Admin'])
-    ->name('home');
+    ->name('admin.dashboard');
 
 Route::get('/admin/statistics/levels', LevelStatisticsController::class)
     ->middleware(['auth', 'role:Admin|Super Admin'])

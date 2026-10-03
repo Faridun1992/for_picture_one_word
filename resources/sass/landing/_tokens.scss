@@ -1,0 +1,65 @@
+// Landing page design tokens. The palette mirrors the mobile client
+// (mobile/src/style.css) so the marketing page and the game look like one
+// product: warm paper background, deep green primary, amber coins.
+
+$lp-ink: #24251f;
+$lp-ink-soft: #4b4c44;
+$lp-muted: #6c6d62;
+$lp-paper: #f7f5ef;
+$lp-paper-deep: #efeade;
+$lp-surface: #fffefa;
+$lp-line: #e6e2d6;
+$lp-line-strong: #d8d3c3;
+
+$lp-green: #385f50;
+$lp-green-deep: #2c4a3e;
+$lp-green-light: #e6eee9;
+$lp-mint: #87c8af;
+$lp-teal: #4e9d8a;
+
+$lp-amber: #e7a844;
+$lp-amber-deep: #a26e25;
+$lp-amber-light: #ffedba;
+$lp-cream: #fff7df;
+
+$lp-coral: #ec795d;
+
+$lp-dark: #1f3a30;
+$lp-dark-soft: #2a4a3d;
+
+$lp-radius-xs: 12px;
+$lp-radius-sm: 18px;
+$lp-radius-md: 26px;
+$lp-radius-lg: 34px;
+$lp-radius-pill: 999px;
+
+$lp-shadow-sm: 0 6px 18px rgb(36 37 31 / 6%);
+$lp-shadow-md: 0 18px 44px rgb(37 58 48 / 10%);
+$lp-shadow-lg: 0 34px 80px rgb(37 58 48 / 16%);
+
+$lp-shell: 1180px;
+$lp-gutter: clamp(18px, 4vw, 40px);
+
+$lp-font: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+$bp-sm: 576px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+
+:root {
+    --lp-ink: #{$lp-ink};
+    --lp-ink-soft: #{$lp-ink-soft};
+    --lp-muted: #{$lp-muted};
+    --lp-paper: #{$lp-paper};
+    --lp-surface: #{$lp-surface};
+    --lp-line: #{$lp-line};
+    --lp-green: #{$lp-green};
+    --lp-green-deep: #{$lp-green-deep};
+    --lp-green-light: #{$lp-green-light};
+    --lp-amber: #{$lp-amber};
+    --lp-amber-deep: #{$lp-amber-deep};
+    --lp-radius-sm: #{$lp-radius-sm};
+    --lp-radius-md: #{$lp-radius-md};
+    --lp-radius-lg: #{$lp-radius-lg};
+    --lp-shadow-md: #{$lp-shadow-md};
+}

@@ -25,9 +25,9 @@ class LevelEditorTest extends TestCase
             'category_id' => $category->id,
             'difficulty' => 2,
             'translations' => [
-                'ru' => ['answer_display' => 'КОТ', 'letter_tiles' => "К\nО\nТ\nА"],
-                'tj' => ['answer_display' => 'ГУРБА', 'letter_tiles' => "Г\nУ\nР\nБ\nА\nТ"],
-                'en' => ['answer_display' => 'CAT', 'letter_tiles' => "C\nA\nT\nO"],
+                'ru' => ['answer_display' => 'КОТ', 'letter_tiles' => "К\nО\nТ\nА\nВ\nГ\nД\nЕ\nЖ\nЗ\nИ\nЙ"],
+                'tj' => ['answer_display' => 'ГУРБА', 'letter_tiles' => "Г\nУ\nР\nБ\nА\nТ\nМ\nС\nЛ\nН\nД\nО"],
+                'en' => ['answer_display' => 'CAT', 'letter_tiles' => "C\nA\nT\nO\nR\nS\nE\nN\nI\nG\nH\nL"],
             ],
         ]);
 
@@ -37,7 +37,66 @@ class LevelEditorTest extends TestCase
         $this->assertSame(LevelStatus::Draft, $level->status);
         $this->assertSame(1, $level->sequence);
         $this->assertSame('гурба', $level->translations()->where('locale', 'tj')->value('answer_normalized'));
-        $this->assertSame(['К', 'О', 'Т', 'А'], $level->translations()->where('locale', 'ru')->firstOrFail()->letter_tiles);
+        $this->assertSame(['К', 'О', 'Т', 'А', 'В', 'Г', 'Д', 'Е', 'Ж', 'З', 'И', 'Й'], $level->translations()->where('locale', 'ru')->firstOrFail()->letter_tiles);
+        $this->assertCount(12, $level->translations()->where('locale', 'tj')->firstOrFail()->letter_tiles);
+    }
+
+    public function test_admin_cannot_save_a_translation_with_eleven_letter_tiles(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $admin = $this->createAdmin();
+        $category = $this->createCategory();
+
+        $this->actingAs($admin)->from(route('admin.levels.create'))
+            ->post(route('admin.levels.store'), [
+                'category_id' => $category->id,
+                'difficulty' => 2,
+                'translations' => [
+                    'ru' => ['answer_display' => 'КОТ', 'letter_tiles' => implode("\n", ['К', 'О', 'Т', 'А', 'В', 'Г', 'Д', 'Е', 'Ж', 'З', 'И'])],
+                ],
+            ])
+            ->assertSessionHasErrors('translations.ru.letter_tiles');
+
+        $this->assertDatabaseCount('levels', 0);
+    }
+
+    public function test_admin_cannot_save_an_answer_longer_than_twelve_tajik_graphemes(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $admin = $this->createAdmin();
+        $category = $this->createCategory();
+
+        $this->actingAs($admin)->from(route('admin.levels.create'))
+            ->post(route('admin.levels.store'), [
+                'category_id' => $category->id,
+                'difficulty' => 2,
+                'translations' => [
+                    'tj' => ['answer_display' => str_repeat('Ӯ', 13), 'letter_tiles' => implode("\n", array_fill(0, 12, 'Ӯ'))],
+                ],
+            ])
+            ->assertSessionHasErrors('translations.tj.answer_display');
+
+        $this->assertDatabaseCount('levels', 0);
+    }
+
+    public function test_admin_can_save_an_answer_of_twelve_tajik_graphemes(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $admin = $this->createAdmin();
+        $category = $this->createCategory();
+        $answer = str_repeat('Ӯ', 12);
+
+        $response = $this->actingAs($admin)->post(route('admin.levels.store'), [
+            'category_id' => $category->id,
+            'difficulty' => 2,
+            'translations' => [
+                'tj' => ['answer_display' => $answer, 'letter_tiles' => implode("\n", array_fill(0, 12, 'Ӯ'))],
+            ],
+        ]);
+
+        $level = Level::query()->firstOrFail();
+        $response->assertRedirect(route('admin.levels.edit', $level));
+        $this->assertSame($answer, $level->translations()->where('locale', 'tj')->value('answer_display'));
     }
 
     public function test_invalid_difficulty_does_not_create_a_level(): void

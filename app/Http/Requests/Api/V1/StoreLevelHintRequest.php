@@ -15,7 +15,7 @@ class StoreLevelHintRequest extends PlayerLocaleRequest
         return [
             ...$this->localeRules(),
             'type' => ['required', 'string', Rule::in(HintType::values())],
-            'position' => ['nullable', 'integer', 'min:1', 'max:100', 'prohibited_unless:type,'.HintType::RevealLetter->value],
+            'position' => ['prohibited'],
             'free_tiles' => ['prohibited'],
         ];
     }
@@ -23,12 +23,5 @@ class StoreLevelHintRequest extends PlayerLocaleRequest
     public function hintType(): HintType
     {
         return HintType::from((string) $this->validated()['type']);
-    }
-
-    public function position(): ?int
-    {
-        $position = $this->validated()['position'] ?? null;
-
-        return $position === null ? null : (int) $position;
     }
 }

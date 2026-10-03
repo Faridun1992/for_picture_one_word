@@ -11,6 +11,22 @@ use Illuminate\Database\Eloquent\Builder;
 
 class CurrentLevelResolver
 {
+    /** @return 'in_progress'|'available'|null */
+    public function statusForPlayer(Player $player, ?int $levelId): ?string
+    {
+        if ($levelId === null) {
+            return null;
+        }
+
+        $hasProgress = PlayerLevelProgress::query()
+            ->where('player_id', $player->id)
+            ->where('level_id', $levelId)
+            ->where('status', PlayerLevelProgressStatus::InProgress->value)
+            ->exists();
+
+        return $hasProgress ? 'in_progress' : 'available';
+    }
+
     public function forPlayer(Player $player): ?int
     {
         $locale = $player->locale;

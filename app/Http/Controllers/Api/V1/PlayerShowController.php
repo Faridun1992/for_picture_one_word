@@ -17,12 +17,15 @@ class PlayerShowController extends Controller
 
         abort_unless($player instanceof Player, 403);
 
+        $currentLevelId = $currentLevelResolver->forPlayer($player);
+
         return response()->json([
             'data' => [
                 'id' => $player->id,
                 'locale' => $player->locale,
                 'balance' => (int) ($player->wallet()->value('balance') ?? 0),
-                'current_level_id' => $currentLevelResolver->forPlayer($player),
+                'current_level_id' => $currentLevelId,
+                'current_level_status' => $currentLevelResolver->statusForPlayer($player, $currentLevelId),
                 'settings' => (new PlayerSettingsResource($player))->resolve(),
             ],
         ]);

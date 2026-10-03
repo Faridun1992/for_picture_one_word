@@ -2,6 +2,15 @@
 
 return [
     'supported_locales' => ['ru', 'tj', 'en'],
+    'max_answer_graphemes' => 12,
+
+    // Store links rendered on the public landing page. Empty values render a
+    // disabled "coming soon" button instead of a broken link.
+    'distribution' => [
+        'app_store_url' => env('APP_STORE_URL', ''),
+        'google_play_url' => env('GOOGLE_PLAY_URL', ''),
+        'support_email' => env('SUPPORT_EMAIL', ''),
+    ],
 
     // Server-owned MVP economy. Client requests never supply prices or rewards.
     'wallet' => [
@@ -19,7 +28,7 @@ return [
     ],
 
     'hints' => [
-        'reveal_letter' => 30,
+        'reveal_letter' => 60,
         'remove_wrong_letters' => 40,
         'remove_wrong_letters_count' => 2,
         'reveal_answer' => 100,

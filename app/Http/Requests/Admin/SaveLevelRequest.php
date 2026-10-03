@@ -55,7 +55,7 @@ class SaveLevelRequest extends FormRequest
         foreach (config('game.supported_locales', []) as $locale) {
             $rules["translations.{$locale}"] = ['nullable', 'array:answer_display,letter_tiles'];
             $rules["translations.{$locale}.answer_display"] = ['nullable', 'string', 'max:100'];
-            $rules["translations.{$locale}.letter_tiles"] = ['nullable', 'array', 'max:64'];
+            $rules["translations.{$locale}.letter_tiles"] = ['nullable', 'array', 'max:12'];
             $rules["translations.{$locale}.letter_tiles.*"] = ['required', 'string', 'max:32'];
         }
 
@@ -75,10 +75,20 @@ class SaveLevelRequest extends FormRequest
 
                 if (blank($answer)) {
                     $validator->errors()->add("translations.{$locale}.answer_display", 'Укажите ответ для набора букв.');
+                } elseif (is_string($answer)) {
+                    $answerLength = grapheme_strlen(trim($answer));
+
+                    if ($answerLength === false || $answerLength > config('game.max_answer_graphemes')) {
+                        $validator->errors()->add("translations.{$locale}.answer_display", 'Ответ не должен превышать '.config('game.max_answer_graphemes').' Unicode-графем.');
+                    }
                 }
 
                 if (empty($tiles)) {
                     $validator->errors()->add("translations.{$locale}.letter_tiles", 'Укажите плитки по одной на строку.');
+                }
+
+                if (is_array($tiles) && count($tiles) !== 12) {
+                    $validator->errors()->add("translations.{$locale}.letter_tiles", 'Для каждого языка укажите ровно 12 плиток: буквы ответа и дополнительные буквы.');
                 }
 
                 foreach (is_array($tiles) ? $tiles : [] as $index => $tile) {

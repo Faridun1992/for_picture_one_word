@@ -25,7 +25,10 @@ class LevelTranslationFactory extends Factory
             'level_id' => Level::factory(),
             'locale' => 'en',
             'answer_display' => $answer,
-            'letter_tiles' => app(AnswerNormalizer::class)->splitGraphemes($answer),
+            'letter_tiles' => [
+                ...app(AnswerNormalizer::class)->splitGraphemes($answer),
+                'D', 'O', 'G', 'R', 'S', 'E', 'N', 'I', 'H',
+            ],
         ];
     }
 }

@@ -97,8 +97,16 @@ class LevelPublicationService
                 continue;
             }
 
+            $answerLength = grapheme_strlen($translation->answer_display);
+
+            if ($answerLength === false || $answerLength < 1 || $answerLength > config('game.max_answer_graphemes')) {
+                $errors["translations.{$locale}.answer_display"] = 'Ответ должен содержать от 1 до '.config('game.max_answer_graphemes').' Unicode-графем.';
+
+                continue;
+            }
+
             if (! $this->hasValidAnswerTiles($translation)) {
-                $errors["translations.{$locale}.letter_tiles"] = "Плитки {$locale} должны содержать все буквы ответа.";
+                $errors["translations.{$locale}.letter_tiles"] = "Плитки {$locale} должны содержать ровно 12 букв и все графемы ответа с нужной кратностью.";
             }
         }
 
@@ -121,7 +129,7 @@ class LevelPublicationService
 
     private function hasValidAnswerTiles(LevelTranslation $translation): bool
     {
-        if (blank($translation->answer_display) || ! is_array($translation->letter_tiles) || $translation->letter_tiles === []) {
+        if (blank($translation->answer_display) || ! is_array($translation->letter_tiles) || count($translation->letter_tiles) !== 12) {
             return false;
         }
 

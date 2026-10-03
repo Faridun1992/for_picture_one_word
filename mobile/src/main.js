@@ -3,11 +3,13 @@ import { ApiError } from './auth/api-client.js';
 import { clearStoredSession, createGuestSession, endGuestSession, loadCategories, loadCategoryLevels, loadLevel, loadPlayer, loadProgress, requestLevelHint, savePlayerSettings, submitLevelAnswer } from './auth/guest-session.js';
 import { secureTokenStorage } from './auth/secure-token-storage.js';
 import { apiBaseUrl } from './config/api.js';
+import { formatCoins, formatLevelMeta, formatNumber, setLocale, t, translatedApiError } from './i18n/index.js';
 import { localGameCache } from './storage/local-game-cache.js';
 
 document.documentElement.dataset.apiConfigured = String(Boolean(apiBaseUrl));
 
 const app = document.querySelector('#app');
+setLocale('ru');
 const session = {
     token: null,
     player: null,
@@ -22,6 +24,7 @@ const session = {
     pendingHint: null,
     hintInFlight: false,
     pendingOperation: null,
+    homeRenderId: 0,
 };
 
 function focusScreenTitle() {
@@ -32,9 +35,9 @@ function renderWelcome(message = '') {
     app.innerHTML = `
         <section class="welcome" aria-labelledby="app-title">
             <div class="picture-grid" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-            <h1 id="app-title" data-screen-title tabindex="-1">Four Pictures<br />One Word</h1>
-            <p class="intro">Play for free. Your progress is saved to your guest profile.</p>
-            <button class="primary-button" type="button" data-action="guest">Continue as guest</button>
+            <h1 id="app-title" data-screen-title tabindex="-1">${t('app.name')}</h1>
+            <p class="intro">${t('welcome.intro')}</p>
+            <button class="primary-button" type="button" data-action="guest">${t('welcome.guest')}</button>
             <p class="status" role="status" aria-live="polite"></p>
         </section>
     `;
@@ -43,58 +46,128 @@ function renderWelcome(message = '') {
     focusScreenTitle();
 }
 
-function renderHome(player, progress, message = '') {
+async function renderHome(player, progress, message = '') {
+    setLocale(player.locale);
     const currentLevelId = session.pendingOperation?.levelId ?? player.current_level_id ?? progress?.current_level_id ?? null;
+    const currentLevelLocale = session.pendingOperation?.locale ?? player.locale;
     const completedLevels = Number(progress?.statistics?.completed_levels ?? 0);
     const totalAttempts = Number(progress?.statistics?.total_attempts ?? 0);
+    const homeRenderId = ++session.homeRenderId;
+    const hasUnfinishedLevel = session.pendingOperation?.levelId === currentLevelId
+        || player.current_level_status === 'in_progress';
 
     app.innerHTML = `
-        <section class="welcome home-screen" aria-labelledby="app-title">
-            <div class="picture-grid" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-            <h1 id="app-title" data-screen-title tabindex="-1">Four Pictures<br />One Word</h1>
-            <p class="player-meta">Guest profile · <span data-locale></span></p>
-            <p class="balance" aria-label="Coin balance"><span data-balance></span> <span>Coins</span></p>
-            <div class="progress-summary" aria-label="Game progress">
-                <span><strong data-completed></strong> levels completed</span>
-                <span><strong data-attempts></strong> answers submitted</span>
+        <section class="home-screen" aria-labelledby="app-title">
+            <header class="home-header">
+                <div class="home-brand" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                <span class="home-locale" data-locale></span>
+                <button class="home-settings" type="button" data-action="settings" aria-label="${t('home.settings')}">⚙</button>
+            </header>
+            <p class="home-eyebrow">${t('home.eyebrow')}</p>
+            <h1 id="app-title" data-screen-title tabindex="-1">${t('home.title')}</h1>
+            <div class="home-wallet" aria-label="${t('game.balance')}">
+                <span class="coin-icon" aria-hidden="true">●</span>
+                <span><small>${t('home.balance')}</small><strong data-balance></strong></span>
             </div>
-            <button class="primary-button" type="button" data-action="continue" ${currentLevelId ? '' : 'disabled'}>Continue playing</button>
-            <p class="intro" data-level-status>${currentLevelId ? 'Resume your current level.' : 'There are no available levels yet.'}</p>
+            <article class="home-level-card" aria-label="${t('home.currentLevel')}">
+                <div class="home-level-images" data-home-images aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                <div class="home-level-copy">
+                    <span class="home-level-kicker" data-home-level-label>${currentLevelId ? t('game.level', { level: currentLevelId }) : t('home.yourNext')}</span>
+                    <strong data-home-category>${currentLevelId ? t('home.loading') : t('home.noLevels')}</strong>
+                    <small data-home-level-meta>${currentLevelId ? t('home.puzzlePreview') : t('home.noLevelHint')}</small>
+                </div>
+            </article>
+            <div class="progress-summary" aria-label="${t('home.progress')}">
+                <span><strong data-completed></strong> ${t('home.completed')}</span>
+                <span><strong data-attempts></strong> ${t('home.attempts')}</span>
+            </div>
+            <button class="primary-button home-play-button" type="button" data-action="continue" ${currentLevelId ? '' : 'disabled'}>${hasUnfinishedLevel ? t('home.continue') : t('home.play')}</button>
+            <p class="intro" data-level-status>${currentLevelId ? (hasUnfinishedLevel ? t('home.resumeHint') : t('home.readyHint')) : t('home.emptyHint')}</p>
             <div class="home-actions">
-                <button class="secondary-button" type="button" data-action="categories">Categories</button>
-                <button class="secondary-button" type="button" data-action="settings">Settings</button>
+                <button class="secondary-button" type="button" data-action="categories">${t('home.categories')}</button>
             </div>
-            <button class="secondary-button" type="button" data-action="logout">End guest session</button>
+            <button class="secondary-button" type="button" data-action="logout">${t('home.endSession')}</button>
             <p class="status" role="status" aria-live="polite"></p>
         </section>
     `;
 
     app.querySelector('[data-locale]').textContent = String(player.locale).toUpperCase();
-    app.querySelector('[data-balance]').textContent = Number(player.balance).toLocaleString();
-    app.querySelector('[data-completed]').textContent = progress ? completedLevels.toLocaleString() : '—';
-    app.querySelector('[data-attempts]').textContent = progress ? totalAttempts.toLocaleString() : '—';
+    app.querySelector('[data-balance]').textContent = formatCoins(player.balance);
+    app.querySelector('[data-completed]').textContent = progress ? formatNumber(completedLevels) : '—';
+    app.querySelector('[data-attempts]').textContent = progress ? formatNumber(totalAttempts) : '—';
     app.querySelector('.primary-button').dataset.levelId = currentLevelId ?? '';
     app.querySelector('.status').textContent = message;
     focusScreenTitle();
+
+    if (!currentLevelId) {
+        return;
+    }
+
+    try {
+        const { level } = await loadCachedLevel(currentLevelId, currentLevelLocale);
+
+        if (homeRenderId !== session.homeRenderId || !app.querySelector('[data-home-images]')) {
+            return;
+        }
+
+        const images = app.querySelector('[data-home-images]');
+        images.replaceChildren();
+
+        for (const image of level.images) {
+            const picture = document.createElement('img');
+            picture.src = image.thumbnail_url ?? image.url;
+            picture.alt = '';
+            picture.loading = 'lazy';
+            images.append(picture);
+        }
+
+        app.querySelector('[data-home-level-label]').textContent = t('game.level', { level: formatNumber(level.sequence) });
+        app.querySelector('[data-home-category]').textContent = level.category.name;
+        app.querySelector('[data-home-level-meta]').textContent = formatLevelMeta(level.answer_length, level.difficulty);
+
+        const draft = await localGameCache.loadDraft(player.id, level.locale ?? player.locale, level);
+        const hasSavedInput = draft?.selectedTileIds?.some((tileId) => tileId !== null)
+            || Object.keys(draft?.revealedLetters ?? {}).length > 0;
+        const shouldContinue = hasUnfinishedLevel || hasSavedInput;
+
+        app.querySelector('.home-play-button').textContent = shouldContinue ? t('home.continue') : t('home.play');
+        app.querySelector('[data-level-status]').textContent = shouldContinue
+            ? t('home.resumeHint')
+            : t('home.readyHint');
+    } catch {
+        if (homeRenderId === session.homeRenderId && app.querySelector('[data-home-images]')) {
+            app.querySelector('[data-home-category]').textContent = t('home.previewUnavailable');
+            app.querySelector('[data-home-level-meta]').textContent = t('home.reconnect');
+            app.querySelector('[data-level-status]').textContent = t('home.savedSafe');
+        }
+    }
 }
 
 function renderLevelPreview(level, preserveHints = false) {
     app.innerHTML = `
         <section class="level-preview" aria-labelledby="level-title">
-            <button class="text-button" type="button" data-action="home">← Home</button>
-            <p class="player-meta" data-category></p>
+            <header class="game-topbar">
+                <button class="text-button" type="button" data-action="home">${t('game.home')}</button>
+                <p class="game-wallet" aria-label="${t('game.balance')}" data-game-balance></p>
+            </header>
+            <p class="player-meta game-category" data-category></p>
             <h1 id="level-title" data-level-title data-screen-title tabindex="-1"></h1>
-            <p class="game-wallet" aria-label="Coin balance"><span data-game-balance></span> Coins</p>
-            <div class="level-images" aria-label="Puzzle images"></div>
+            <div class="level-images" aria-label="${t('game.images')}"></div>
             <p class="intro" data-level-meta></p>
-            <div class="answer-slots" role="group" aria-label="Your answer"></div>
-            <div class="letter-tiles" role="group" aria-label="Available letters"></div>
-            <button class="text-button clear-answer" type="button" data-action="clear-answer">Clear answer</button>
-            <button class="primary-button submit-answer" type="button" data-action="submit-answer" disabled>Check answer</button>
-            <div class="hint-actions" role="group" aria-label="Hints">
-                <button class="hint-button" type="button" data-action="hint" data-hint-type="reveal_letter">Reveal a letter</button>
-                <button class="hint-button" type="button" data-action="hint" data-hint-type="remove_wrong_letters">Remove wrong letters</button>
-                <button class="hint-button" type="button" data-action="hint" data-hint-type="reveal_answer">Reveal answer</button>
+            <div class="answer-slots" role="group" aria-label="${t('game.answer')}"></div>
+            <div class="tile-hint-layout">
+                <div class="letter-tiles" role="group" aria-label="${t('game.letters')}"></div>
+                <button class="hint-button letter-hint-button" type="button" data-action="hint" data-hint-type="reveal_letter" aria-label="${t('game.revealLetterAria', { price: 60 })}">
+                    <span class="letter-hint-mark" aria-hidden="true">A</span>
+                    <span class="letter-hint-price">60</span>
+                    <span class="letter-hint-coin" aria-hidden="true">●</span>
+                </button>
+            </div>
+            <button class="text-button clear-answer" type="button" data-action="clear-answer">${t('game.clear')}</button>
+            <button class="primary-button submit-answer" type="button" data-action="submit-answer" disabled>${t('game.check')}</button>
+            <div class="hint-actions" role="group" aria-label="${t('game.hints')}">
+                <button class="hint-button" type="button" data-action="hint" data-hint-type="remove_wrong_letters">${t('game.removeWrong')}</button>
+                <button class="hint-button" type="button" data-action="hint" data-hint-type="reveal_answer">${t('game.revealAnswer')}</button>
             </div>
             <p class="visually-hidden" aria-live="polite" data-answer-announcement></p>
             <p class="status" role="status" aria-live="polite"></p>
@@ -102,8 +175,8 @@ function renderLevelPreview(level, preserveHints = false) {
     `;
 
     app.querySelector('[data-category]').textContent = level.category.name;
-    app.querySelector('[data-level-title]').textContent = `Level ${level.sequence}`;
-    app.querySelector('[data-level-meta]').textContent = `${level.answer_length} letters · Difficulty ${level.difficulty}`;
+    app.querySelector('[data-level-title]').textContent = t('game.level', { level: formatNumber(level.sequence) });
+    app.querySelector('[data-level-meta]').textContent = formatLevelMeta(level.answer_length, level.difficulty);
     session.level = level;
     session.selectedTileIds = Array.from({ length: level.answer_length }, () => null);
 
@@ -122,7 +195,7 @@ function renderLevelPreview(level, preserveHints = false) {
     for (const image of level.images) {
         const picture = document.createElement('img');
         picture.src = image.thumbnail_url ?? image.url;
-        picture.alt = `Puzzle clue ${image.position}`;
+        picture.alt = t('game.imageClue', { position: formatNumber(image.position) });
         picture.loading = 'lazy';
         images.append(picture);
     }
@@ -143,7 +216,7 @@ async function openLevel(level, offline = false) {
     }
 
     if (offline) {
-        app.querySelector('.status').textContent = 'Offline mode. Your saved answer is available; reconnect to submit it.';
+        app.querySelector('.status').textContent = t('game.offline');
     }
 }
 
@@ -201,8 +274,8 @@ function renderPuzzleControls() {
         slot.dataset.slotIndex = String(index);
         slot.textContent = tile ?? '';
         slot.setAttribute('aria-label', tile === null
-            ? `Answer position ${index + 1}, empty`
-            : `Answer position ${index + 1}, letter ${tile}. Remove`);
+            ? t('game.emptySlot', { position: formatNumber(index + 1) })
+            : t('game.filledSlot', { position: formatNumber(index + 1), letter: tile }));
         slot.disabled = tile === null || revealedLetter !== null || Boolean(session.pendingAttempt) || Boolean(session.pendingHint);
         answerSlots.append(slot);
     });
@@ -222,7 +295,7 @@ function renderPuzzleControls() {
             || answerIsFull
             || Boolean(session.pendingAttempt)
             || Boolean(session.pendingHint);
-        button.setAttribute('aria-label', `Letter ${tile}${isSelected ? ', selected' : ''}`);
+        button.setAttribute('aria-label', t('game.tile', { letter: tile, selected: isSelected ? t('game.selected') : '' }));
         button.setAttribute('aria-pressed', String(isSelected));
         letterTiles.append(button);
     });
@@ -247,13 +320,14 @@ function renderPuzzleControls() {
             || Boolean(session.attemptInFlight)
             || Boolean(session.hintInFlight);
     }
+
 }
 
 function updateVisibleBalance() {
     const balance = app.querySelector('[data-game-balance]');
 
     if (balance) {
-        balance.textContent = Number(session.player.balance).toLocaleString();
+        balance.textContent = formatCoins(session.player.balance);
     }
 }
 
@@ -276,14 +350,14 @@ function applyHintResult(type, result) {
     updateVisibleBalance();
 
     app.querySelector('.status').textContent = result.charged
-        ? `Hint used. ${result.cost} Coins charged. Balance: ${result.balance.toLocaleString()} Coins.`
-        : (type === 'reveal_letter' ? 'There are no more letters to reveal.' : 'There are no more wrong letters to remove.');
+        ? t('game.hintUsed', { cost: formatNumber(result.cost), balance: formatNumber(result.balance) })
+        : (type === 'reveal_letter' ? t('game.noLetters') : t('game.noWrongTiles'));
 }
 
 function renderAttemptResult(result) {
     if (!result.correct) {
         renderLevelPreview(session.level, true);
-        app.querySelector('.status').textContent = `Not quite. ${result.progress.attempt_count} attempts so far. Try again.`;
+        app.querySelector('.status').textContent = t('game.incorrect', { attempts: formatNumber(result.progress.attempt_count) });
 
         return;
     }
@@ -291,7 +365,7 @@ function renderAttemptResult(result) {
     app.innerHTML = `
         <section class="welcome result-screen" aria-labelledby="result-title">
             <div class="picture-grid" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-            <h1 id="result-title" data-screen-title tabindex="-1">Correct!</h1>
+            <h1 id="result-title" data-screen-title tabindex="-1">${t('game.correct')}</h1>
             <p class="reward-earned" data-reward></p>
             <p class="intro" data-balance></p>
             <button class="primary-button" type="button" data-action="next-level"></button>
@@ -299,11 +373,12 @@ function renderAttemptResult(result) {
     `;
 
     const reward = result.reward;
-    app.querySelector('[data-reward]').textContent = `+${reward.coins} Coins earned`;
-    app.querySelector('[data-balance]').textContent = `${reward.balance.toLocaleString()} Coins total`;
-    app.querySelector('[data-action="next-level"]').textContent = result.next_level_id ? 'Continue to next level' : 'Back to home';
+    app.querySelector('[data-reward]').textContent = t('game.reward', { coins: formatNumber(reward.coins) });
+    app.querySelector('[data-balance]').textContent = t('game.totalBalance', { balance: formatCoins(reward.balance) });
+    app.querySelector('[data-action="next-level"]').textContent = result.next_level_id ? t('game.nextLevel') : t('game.backHome');
     session.player.balance = reward.balance;
     session.player.current_level_id = result.next_level_id;
+    session.player.current_level_status = result.next_level_id ? 'available' : null;
     focusScreenTitle();
 }
 
@@ -311,9 +386,9 @@ function renderRestore(message) {
     app.innerHTML = `
         <section class="welcome" aria-labelledby="app-title">
             <div class="picture-grid" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-            <h1 id="app-title" data-screen-title tabindex="-1">Reconnect your profile</h1>
-            <p class="intro">Your guest profile is saved securely on this device.</p>
-            <button class="primary-button" type="button" data-action="restore">Retry connection</button>
+            <h1 id="app-title" data-screen-title tabindex="-1">${t('restore.title')}</h1>
+            <p class="intro">${t('restore.intro')}</p>
+            <button class="primary-button" type="button" data-action="restore">${t('restore.retry')}</button>
             <p class="status" role="status" aria-live="polite"></p>
         </section>
     `;
@@ -325,8 +400,8 @@ function renderRestore(message) {
 function renderCategories(categories = session.categories) {
     app.innerHTML = `
         <section class="list-screen" aria-labelledby="screen-title">
-            <button class="text-button" type="button" data-action="home">← Home</button>
-            <h1 id="screen-title" data-screen-title tabindex="-1">Categories</h1>
+            <button class="text-button" type="button" data-action="home">${t('game.home')}</button>
+            <h1 id="screen-title" data-screen-title tabindex="-1">${t('categories.title')}</h1>
             <div class="item-list" data-category-list></div>
             <p class="status" role="status" aria-live="polite"></p>
         </section>
@@ -335,7 +410,7 @@ function renderCategories(categories = session.categories) {
     const list = app.querySelector('[data-category-list]');
 
     if (categories.length === 0) {
-        list.textContent = 'No categories are available in this language yet.';
+        list.textContent = t('categories.empty');
     }
 
     for (const category of categories) {
@@ -347,7 +422,7 @@ function renderCategories(categories = session.categories) {
         button.dataset.action = 'select-category';
         button.dataset.categoryId = String(category.id);
         label.textContent = category.name;
-        count.textContent = `${category.published_levels_count} levels`;
+        count.textContent = t('categories.count', { count: formatNumber(category.published_levels_count) });
         button.append(label, count);
         button.disabled = category.published_levels_count === 0;
         list.append(button);
@@ -359,7 +434,7 @@ function renderCategories(categories = session.categories) {
 function renderCategoryLevels(category, levels) {
     app.innerHTML = `
         <section class="list-screen" aria-labelledby="screen-title">
-            <button class="text-button" type="button" data-action="categories">← Categories</button>
+            <button class="text-button" type="button" data-action="categories">${t('levels.back')}</button>
             <h1 id="screen-title" data-screen-title tabindex="-1"></h1>
             <div class="item-list" data-level-list></div>
             <p class="status" role="status" aria-live="polite"></p>
@@ -370,7 +445,7 @@ function renderCategoryLevels(category, levels) {
     const list = app.querySelector('[data-level-list]');
 
     if (levels.length === 0) {
-        list.textContent = 'No playable levels are available in this category.';
+        list.textContent = t('levels.empty');
     }
 
     for (const level of levels) {
@@ -381,8 +456,8 @@ function renderCategoryLevels(category, levels) {
         button.type = 'button';
         button.dataset.action = 'open-category-level';
         button.dataset.levelId = String(level.id);
-        title.textContent = `Level ${level.sequence}`;
-        details.textContent = `${level.answer_length} letters · Difficulty ${level.difficulty}`;
+        title.textContent = t('game.level', { level: formatNumber(level.sequence) });
+        details.textContent = formatLevelMeta(level.answer_length, level.difficulty);
         button.append(title, details);
         list.append(button);
     }
@@ -392,21 +467,22 @@ function renderCategoryLevels(category, levels) {
 
 function renderSettings() {
     const settings = session.player.settings;
+    setLocale(settings.locale);
 
     app.innerHTML = `
         <section class="list-screen" aria-labelledby="screen-title">
-            <button class="text-button" type="button" data-action="home">← Home</button>
-            <h1 id="screen-title" data-screen-title tabindex="-1">Settings</h1>
+            <button class="text-button" type="button" data-action="home">${t('game.home')}</button>
+            <h1 id="screen-title" data-screen-title tabindex="-1">${t('settings.title')}</h1>
             <form class="settings-form">
-                <label for="locale-setting">Language</label>
+                <label for="locale-setting">${t('settings.language')}</label>
                 <select id="locale-setting" name="locale">
                     <option value="ru">Русский</option>
                     <option value="tj">Тоҷикӣ</option>
                     <option value="en">English</option>
                 </select>
-                <label class="toggle-setting"><input id="sound-setting" name="sound_enabled" type="checkbox"> Sound</label>
-                <label class="toggle-setting"><input id="haptics-setting" name="haptics_enabled" type="checkbox"> Vibration</label>
-                <button class="primary-button" type="button" data-action="save-settings">Save settings</button>
+                <label class="toggle-setting"><input id="sound-setting" name="sound_enabled" type="checkbox"> ${t('settings.sound')}</label>
+                <label class="toggle-setting"><input id="haptics-setting" name="haptics_enabled" type="checkbox"> ${t('settings.vibration')}</label>
+                <button class="primary-button" type="button" data-action="save-settings">${t('settings.save')}</button>
             </form>
             <p class="status" role="status" aria-live="polite"></p>
         </section>
@@ -419,7 +495,7 @@ function renderSettings() {
 }
 
 function showError(error) {
-    const message = error instanceof ApiError ? error.message : 'Something went wrong. Please try again.';
+    const message = translatedApiError(error);
     const status = app.querySelector('.status');
 
     if (status) {
@@ -450,14 +526,14 @@ app.addEventListener('click', async (event) => {
             session.token = await secureTokenStorage.get();
             session.player = player;
             session.progress = await loadProgress(session.token).catch(() => null);
-            renderHome(session.player, session.progress, session.progress ? '' : 'Progress summary is temporarily unavailable.');
+            await renderHome(session.player, session.progress, session.progress ? '' : t('settings.progressUnavailable'));
         }
 
         if (button.dataset.action === 'restore') {
             const token = await secureTokenStorage.get();
 
             if (!token) {
-                renderWelcome('No saved guest session was found.');
+                renderWelcome(t('restore.missing'));
 
                 return;
             }
@@ -496,7 +572,7 @@ app.addEventListener('click', async (event) => {
                 }
 
                 renderPuzzleControls();
-                app.querySelector('.status').textContent = 'An action is waiting for confirmation. Retry it to safely resend the same request.';
+                app.querySelector('.status').textContent = t('game.pending');
             }
         }
 
@@ -555,7 +631,7 @@ app.addEventListener('click', async (event) => {
             session.progress = await loadProgress(session.token).catch(() => session.progress);
             await localGameCache.savePlayer(session.player, session.progress);
             renderSettings();
-            app.querySelector('.status').textContent = 'Settings saved to your guest profile.';
+            app.querySelector('.status').textContent = t('settings.saved');
         }
 
         if (button.dataset.action === 'submit-answer') {
@@ -593,6 +669,15 @@ app.addEventListener('click', async (event) => {
             session.pendingOperation = null;
             await localGameCache.clearPendingOperation(session.player.id);
             session.attemptInFlight = false;
+
+            if (!result.correct) {
+                session.player = await loadPlayer(session.token).catch(() => ({
+                    ...session.player,
+                    current_level_id: session.level.id,
+                    current_level_status: 'in_progress',
+                }));
+            }
+
             renderAttemptResult(result);
             session.progress = await loadProgress(session.token).catch(() => session.progress);
             await localGameCache.clearDraft(session.player.id, session.level.locale ?? session.player.locale, session.level.id);
@@ -626,6 +711,15 @@ app.addEventListener('click', async (event) => {
             );
 
             applyHintResult(type, result);
+
+            if (type !== 'reveal_answer') {
+                session.player = await loadPlayer(session.token).catch(() => ({
+                    ...session.player,
+                    current_level_id: session.level.id,
+                    current_level_status: 'in_progress',
+                }));
+            }
+
             session.pendingOperation = null;
             await localGameCache.clearPendingOperation(session.player.id);
             session.progress = await loadProgress(session.token).catch(() => session.progress);
@@ -637,7 +731,7 @@ app.addEventListener('click', async (event) => {
         }
 
         if (button.dataset.action === 'home') {
-            renderHome(session.player, session.progress);
+            await renderHome(session.player, session.progress);
         }
 
         if (button.dataset.action === 'next-level') {
@@ -645,7 +739,7 @@ app.addEventListener('click', async (event) => {
                 const { level, offline } = await loadCachedLevel(session.player.current_level_id);
                 await openLevel(level, offline);
             } else {
-                renderHome(session.player, session.progress);
+                await renderHome(session.player, session.progress);
             }
         }
 
@@ -681,7 +775,7 @@ app.addEventListener('click', async (event) => {
             }
 
             await localGameCache.clearPlayer(playerId);
-            renderWelcome('Your guest session has ended.');
+            renderWelcome(t('welcome.ended'));
         }
     } catch (error) {
         if (error instanceof ApiError && error.status === 401 && ['logout', 'restore', 'continue', 'submit-answer', 'hint', 'next-level', 'categories', 'select-category', 'open-category-level', 'save-settings'].includes(button.dataset.action)) {
@@ -691,9 +785,9 @@ app.addEventListener('click', async (event) => {
             session.hintInFlight = false;
             try {
                 await clearStoredSession();
-                renderWelcome('Your previous guest session expired. Continue to create a new one.');
+                renderWelcome(t('restore.expired'));
             } catch {
-                renderWelcome('The expired session could not be removed from secure storage. You can continue as a guest.');
+                renderWelcome(t('restore.removeFailed'));
             }
         } else if (['continue', 'submit-answer', 'hint', 'next-level', 'categories', 'select-category', 'open-category-level', 'save-settings'].includes(button.dataset.action)) {
             session.attemptInFlight = false;
@@ -703,7 +797,10 @@ app.addEventListener('click', async (event) => {
                 session.player.balance = Number(error.meta.balance ?? session.player.balance);
                 session.pendingHint = null;
                 updateVisibleBalance();
-                app.querySelector('.status').textContent = `Not enough Coins. This hint costs ${error.meta.required} Coins; your balance is ${session.player.balance.toLocaleString()} Coins.`;
+                app.querySelector('.status').textContent = t('errors.insufficientCoins', {
+                    required: formatNumber(error.meta.required),
+                    balance: formatNumber(session.player.balance),
+                });
             } else {
                 if (button.dataset.action === 'hint' && error instanceof ApiError && error.status === 422) {
                     session.pendingHint = null;
@@ -729,7 +826,7 @@ app.addEventListener('click', async (event) => {
             const storedToken = await secureTokenStorage.get().catch(() => null);
 
             if (button.dataset.action === 'restore' || storedToken) {
-                renderRestore(error instanceof ApiError ? error.message : 'The guest profile could not be loaded.');
+                renderRestore(translatedApiError(error));
             } else {
                 showError(error);
                 button.disabled = false;
@@ -738,21 +835,21 @@ app.addEventListener('click', async (event) => {
 
         if (button.dataset.action === 'submit-answer' && session.pendingAttempt
             && !(error instanceof ApiError && error.status === 422)) {
-            app.querySelector('.status').textContent = `${error instanceof ApiError ? error.message : 'The answer could not be confirmed.'} Retry to safely resend the same attempt.`;
+            app.querySelector('.status').textContent = t('game.retryAttempt', { message: translatedApiError(error) });
         }
 
         if (button.dataset.action === 'hint' && session.pendingHint) {
-            app.querySelector('.status').textContent = `${error instanceof ApiError ? error.message : 'The hint could not be confirmed.'} Retry the same hint to safely resend it.`;
+            app.querySelector('.status').textContent = t('game.retryHint', { message: translatedApiError(error) });
         }
     }
 });
 
 async function initialize() {
-    renderWelcome('Checking your guest profile…');
+    renderWelcome(t('welcome.checking'));
     app.querySelector('button').disabled = true;
 
     if (!apiBaseUrl) {
-        showError(new ApiError('The game server is not configured.', 0));
+        app.querySelector('.status').textContent = t('errors.apiNotConfigured');
         app.querySelector('button').disabled = true;
 
         return;
@@ -763,7 +860,7 @@ async function initialize() {
     try {
         token = await secureTokenStorage.get();
     } catch {
-        showError(new Error('Secure token storage is unavailable on this device.'));
+        app.querySelector('.status').textContent = t('errors.secureStorage');
         app.querySelector('button').disabled = true;
 
         return;
@@ -782,15 +879,15 @@ async function initialize() {
         if (error instanceof ApiError && error.status === 401) {
             try {
                 await clearStoredSession();
-                renderWelcome('Your previous guest session expired. Continue to create a new one.');
+                renderWelcome(t('restore.expired'));
             } catch {
-                showError(new Error('The expired session could not be removed from secure storage.'));
+                app.querySelector('.status').textContent = t('errors.expiredCleanup');
             }
 
             return;
         }
 
-        renderRestore(error instanceof ApiError ? error.message : 'The guest profile could not be loaded.');
+        renderRestore(translatedApiError(error));
     }
 }
 
@@ -802,7 +899,7 @@ async function restoreHome(token) {
         session.progress = await loadProgress(token).catch(() => null);
         session.pendingOperation = await localGameCache.loadPendingOperation(session.player.id);
         await localGameCache.savePlayer(session.player, session.progress);
-        renderHome(session.player, session.progress, session.progress ? '' : 'Progress summary is temporarily unavailable.');
+        await renderHome(session.player, session.progress, session.progress ? '' : t('settings.progressUnavailable'));
     } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 0) {
             throw error;
@@ -817,7 +914,7 @@ async function restoreHome(token) {
         session.player = cachedHome.player;
         session.progress = cachedHome.progress;
         session.pendingOperation = await localGameCache.loadPendingOperation(session.player.id);
-        renderHome(session.player, session.progress, 'Offline mode. Progress shown from the last saved profile.');
+        await renderHome(session.player, session.progress, t('home.offlineProgress'));
     }
 }
 

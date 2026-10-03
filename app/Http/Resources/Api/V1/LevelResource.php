@@ -18,6 +18,8 @@ class LevelResource extends JsonResource
     public function toArray(Request $request): array
     {
         $translation = $this->translations->first();
+        $letterTiles = array_values($translation->letter_tiles);
+        shuffle($letterTiles);
         $categoryTranslation = $this->category->translations->first();
         $timestamps = [
             $this->updated_at?->format('U.u'),
@@ -37,7 +39,7 @@ class LevelResource extends JsonResource
             ],
             'answer_length' => count(app(AnswerNormalizer::class)->splitGraphemes($translation->answer_display)),
             'locale' => $translation->locale,
-            'letter_tiles' => $translation->letter_tiles,
+            'letter_tiles' => $letterTiles,
             'images' => $this->images->map(function (LevelImage $image): array {
                 $displayVariant = data_get($image->variants, 'display', []);
                 $thumbnailVariant = data_get($image->variants, 'thumbnail', []);

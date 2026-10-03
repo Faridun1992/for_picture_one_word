@@ -58,12 +58,67 @@ class LevelPublicationTest extends TestCase
         $this->assertNull($level->published_at);
     }
 
-    public function test_publication_checks_that_letter_tiles_contain_the_answer(): void
+    public function test_publication_rejects_letter_tiles_that_do_not_cover_the_answer(): void
     {
         $admin = $this->createAdmin();
         $level = $this->createCompleteDraft();
         $level->translations()->where('locale', 'ru')->update([
             'letter_tiles' => json_encode(['К', 'О', 'А'], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.levels.edit', $level))
+            ->post(route('admin.levels.publish', $level))
+            ->assertRedirect(route('admin.levels.edit', $level))
+            ->assertSessionHasErrors('translations.ru.letter_tiles');
+
+        $this->assertSame(LevelStatus::Draft, $level->refresh()->status);
+    }
+
+    public function test_publication_rejects_eleven_tiles_even_when_the_answer_is_covered(): void
+    {
+        $admin = $this->createAdmin();
+        $level = $this->createCompleteDraft();
+        $level->translations()->where('locale', 'ru')->update([
+            'letter_tiles' => json_encode(['К', 'О', 'Т', 'А', 'В', 'Г', 'Д', 'Е', 'Ж', 'З', 'И'], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.levels.edit', $level))
+            ->post(route('admin.levels.publish', $level))
+            ->assertRedirect(route('admin.levels.edit', $level))
+            ->assertSessionHasErrors('translations.ru.letter_tiles');
+
+        $this->assertSame(LevelStatus::Draft, $level->refresh()->status);
+    }
+
+    public function test_publication_rejects_an_answer_longer_than_twelve_tajik_graphemes(): void
+    {
+        $admin = $this->createAdmin();
+        $level = $this->createCompleteDraft();
+        $longAnswer = str_repeat('Ӯ', 13);
+        $level->translations()->where('locale', 'tj')->update([
+            'answer_display' => $longAnswer,
+            'answer_normalized' => mb_strtolower($longAnswer),
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.levels.edit', $level))
+            ->post(route('admin.levels.publish', $level))
+            ->assertRedirect(route('admin.levels.edit', $level))
+            ->assertSessionHasErrors('translations.tj.answer_display');
+
+        $this->assertSame(LevelStatus::Draft, $level->refresh()->status);
+    }
+
+    public function test_publication_requires_duplicate_answer_letters_to_have_duplicate_tiles(): void
+    {
+        $admin = $this->createAdmin();
+        $level = $this->createCompleteDraft();
+        $level->translations()->where('locale', 'ru')->update([
+            'answer_display' => 'КОК',
+            'answer_normalized' => 'кок',
+            'letter_tiles' => json_encode(['К', 'О', 'Т', 'А', 'В', 'Г', 'Д', 'Е', 'Ж', 'З', 'И', 'Й'], JSON_THROW_ON_ERROR),
         ]);
 
         $this->actingAs($admin)
@@ -154,9 +209,9 @@ class LevelPublicationTest extends TestCase
 
         $level = Level::factory()->for($category)->create();
         $translations = [
-            'ru' => ['КОТ', ['К', 'О', 'Т', 'А']],
-            'tj' => ['ГУРБА', ['Г', 'У', 'Р', 'Б', 'А', 'Т']],
-            'en' => ['CAT', ['C', 'A', 'T', 'O']],
+            'ru' => ['КОТ', ['К', 'О', 'Т', 'А', 'В', 'Г', 'Д', 'Е', 'Ж', 'З', 'И', 'Й']],
+            'tj' => ['ГУРБА', ['Г', 'У', 'Р', 'Б', 'А', 'Т', 'М', 'С', 'Л', 'Н', 'Д', 'О']],
+            'en' => ['CAT', ['C', 'A', 'T', 'O', 'R', 'S', 'E', 'N', 'I', 'G', 'H', 'L']],
         ];
 
         foreach ($translations as $locale => [$answer, $tiles]) {

@@ -48,6 +48,11 @@ class CatalogApiTest extends TestCase
         $level = $response->json('data.0');
         $this->assertSame($publishedLevel->id, $level['id']);
         $this->assertSame(5, $level['answer_length']);
+        $this->assertCount(12, $level['letter_tiles']);
+        $this->assertEqualsCanonicalizing(
+            ['Г', 'У', 'Р', 'Б', 'А', 'Т', 'М', 'С', 'Л', 'Н', 'Д', 'О'],
+            $level['letter_tiles'],
+        );
         $this->assertSame('Ҳайвонот', $level['category']['name']);
         $this->assertSame('tj', $level['locale']);
         $this->assertSame([1, 2, 3, 4], array_column($level['images'], 'position'));
@@ -65,6 +70,7 @@ class CatalogApiTest extends TestCase
         $this->withToken($token)->getJson("/api/v1/levels/{$level->id}?locale=tj")
             ->assertOk()
             ->assertJsonPath('data.id', $level->id)
+            ->assertJsonCount(12, 'data.letter_tiles')
             ->assertJsonPath('data.images.0.position', 1)
             ->assertJsonPath('data.images.3.position', 4)
             ->assertJsonMissingPath('data.answer_display')
@@ -144,7 +150,7 @@ class CatalogApiTest extends TestCase
         LevelTranslation::factory()->for($level)->create([
             'locale' => 'tj',
             'answer_display' => 'ГУРБА',
-            'letter_tiles' => ['Г', 'У', 'Р', 'Б', 'А'],
+            'letter_tiles' => ['Г', 'У', 'Р', 'Б', 'А', 'Т', 'М', 'С', 'Л', 'Н', 'Д', 'О'],
         ]);
 
         for ($position = 1; $position <= 4; $position++) {

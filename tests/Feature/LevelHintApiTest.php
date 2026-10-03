@@ -35,38 +35,42 @@ class LevelHintApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.charged', true)
-            ->assertJsonPath('data.cost', 30)
-            ->assertJsonPath('data.balance', 70)
+            ->assertJsonPath('data.cost', 60)
+            ->assertJsonPath('data.balance', 40)
             ->assertJsonPath('data.position', 1)
             ->assertJsonPath('data.revealed.1', 'К')
             ->assertJsonPath('data.letter_tiles', ['О', 'Ш', 'К', 'А']);
 
         $this->assertDatabaseHas('wallet_transactions', [
             'player_id' => $player->id,
-            'amount' => -30,
-            'balance_after' => 70,
+            'amount' => -60,
+            'balance_after' => 40,
             'reason' => WalletTransactionReason::HintCost->value,
             'reference_type' => WalletTransactionReferenceType::LevelHint->value,
         ]);
         $this->assertDatabaseCount('wallet_transactions', 1);
     }
 
-    public function test_reopening_a_letter_does_not_charge_again(): void
+    public function test_a_new_reveal_letter_hint_opens_the_next_position_and_charges_again(): void
     {
         $player = Player::factory()->create(['locale' => 'ru']);
-        PlayerWallet::factory()->for($player)->create(['balance' => 100]);
+        PlayerWallet::factory()->for($player)->create(['balance' => 120]);
         $level = $this->createPlayableLevel('ru', 'КОШКА', ['К', 'О', 'Ш', 'К', 'А']);
         $token = $player->createToken('hint-test')->plainTextToken;
 
-        $this->withToken($token)->postJson("/api/v1/levels/{$level->id}/hints", ['type' => 'reveal_letter', 'position' => 1], ['Idempotency-Key' => 'hint-letter-first-001'])->assertOk();
-        $this->withToken($token)->postJson("/api/v1/levels/{$level->id}/hints", ['type' => 'reveal_letter', 'position' => 1], ['Idempotency-Key' => 'hint-letter-repeat-01'])
+        $this->withToken($token)->postJson("/api/v1/levels/{$level->id}/hints", ['type' => 'reveal_letter'], ['Idempotency-Key' => 'hint-letter-first-001'])
             ->assertOk()
-            ->assertJsonPath('data.charged', false)
-            ->assertJsonPath('data.cost', 0)
-            ->assertJsonPath('data.balance', 70);
+            ->assertJsonPath('data.position', 1)
+            ->assertJsonPath('data.balance', 60);
+        $this->withToken($token)->postJson("/api/v1/levels/{$level->id}/hints", ['type' => 'reveal_letter'], ['Idempotency-Key' => 'hint-letter-repeat-01'])
+            ->assertOk()
+            ->assertJsonPath('data.charged', true)
+            ->assertJsonPath('data.cost', 60)
+            ->assertJsonPath('data.position', 2)
+            ->assertJsonPath('data.balance', 0);
 
-        $this->assertDatabaseCount('wallet_transactions', 1);
-        $this->assertDatabaseHas('player_level_progress', ['player_id' => $player->id, 'level_id' => $level->id, 'hints_used' => 1]);
+        $this->assertDatabaseCount('wallet_transactions', 2);
+        $this->assertDatabaseHas('player_level_progress', ['player_id' => $player->id, 'level_id' => $level->id, 'hints_used' => 2]);
     }
 
     public function test_reveal_letter_when_all_letters_are_already_revealed_is_free(): void
@@ -166,17 +170,17 @@ class LevelHintApiTest extends TestCase
     public function test_insufficient_coins_do_not_change_wallet_progress_or_ledger(): void
     {
         $player = Player::factory()->create(['locale' => 'ru']);
-        PlayerWallet::factory()->for($player)->create(['balance' => 29]);
+        PlayerWallet::factory()->for($player)->create(['balance' => 59]);
         $level = $this->createPlayableLevel('ru', 'КОШКА', ['К', 'О', 'Ш', 'К', 'А']);
         $token = $player->createToken('hint-test')->plainTextToken;
 
         $this->withToken($token)->postJson("/api/v1/levels/{$level->id}/hints", ['type' => 'reveal_letter'], ['Idempotency-Key' => 'hint-too-poor-0001'])
             ->assertUnprocessable()
             ->assertJsonPath('code', 'insufficient_coins')
-            ->assertJsonPath('meta.required', 30)
-            ->assertJsonPath('meta.balance', 29);
+            ->assertJsonPath('meta.required', 60)
+            ->assertJsonPath('meta.balance', 59);
 
-        $this->assertSame(29, $player->wallet()->firstOrFail()->refresh()->balance);
+        $this->assertSame(59, $player->wallet()->firstOrFail()->refresh()->balance);
         $this->assertDatabaseCount('wallet_transactions', 0);
         $this->assertDatabaseMissing('player_level_progress', ['player_id' => $player->id]);
     }
@@ -190,6 +194,7 @@ class LevelHintApiTest extends TestCase
 
         $this->withToken($token)->postJson("/api/v1/levels/{$level->id}/hints", ['type' => 'unknown'], ['Idempotency-Key' => 'hint-unknown-type-1'])->assertUnprocessable()->assertJsonValidationErrors('type');
         $this->withToken($token)->postJson("/api/v1/levels/{$level->id}/hints", ['type' => 'remove_wrong_letters', 'free_tiles' => ['К']], ['Idempotency-Key' => 'hint-client-board-01'])->assertUnprocessable()->assertJsonValidationErrors('free_tiles');
+        $this->withToken($token)->postJson("/api/v1/levels/{$level->id}/hints", ['type' => 'reveal_letter', 'position' => 3], ['Idempotency-Key' => 'hint-client-position-1'])->assertUnprocessable()->assertJsonValidationErrors('position');
 
         $this->assertDatabaseCount('wallet_transactions', 0);
     }

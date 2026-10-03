@@ -58,12 +58,13 @@
             <div class="card-body">
                 <div class="form-group">
                     <label for="answer-{{ $locale }}">Правильный ответ</label>
-                    <input id="answer-{{ $locale }}" name="translations[{{ $locale }}][answer_display]" class="form-control" maxlength="100" value="{{ data_get($translationInput, 'answer_display', $savedTranslation?->answer_display ?? '') }}">
+                    <input id="answer-{{ $locale }}" name="translations[{{ $locale }}][answer_display]" class="form-control" maxlength="100" aria-describedby="answer-help-{{ $locale }}" value="{{ data_get($translationInput, 'answer_display', $savedTranslation?->answer_display ?? '') }}">
+                    <small id="answer-help-{{ $locale }}" class="form-text text-muted">Не более {{ config('game.max_answer_graphemes') }} Unicode-графем.</small>
                 </div>
                 <div class="form-group mb-0">
-                    <label for="tiles-{{ $locale }}">Буквенные плитки</label>
+                    <label for="tiles-{{ $locale }}">12 буквенных плиток</label>
                     <textarea id="tiles-{{ $locale }}" name="translations[{{ $locale }}][letter_tiles]" class="form-control" rows="6" aria-describedby="tiles-help-{{ $locale }}">{{ implode("\n", $tilesInput) }}</textarea>
-                    <small id="tiles-help-{{ $locale }}" class="form-text text-muted">Одна плитка на строку; каждая плитка должна быть одним Unicode-символом. Дополнительные неверные буквы вводите отдельными строками.</small>
+                    <small id="tiles-help-{{ $locale }}" class="form-text text-muted">Укажите ровно 12 плиток, включая все буквы ответа и дополнительные буквы — по одной Unicode-графеме на строку.</small>
                 </div>
             </div>
         </div>

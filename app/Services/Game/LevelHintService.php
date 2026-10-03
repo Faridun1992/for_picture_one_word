@@ -39,12 +39,11 @@ class LevelHintService
         Level $level,
         string $locale,
         HintType $type,
-        ?int $position,
         int $operationId,
     ): array {
         $translation = $this->playableLevelResolver->translation($level, $locale);
 
-        return DB::transaction(function () use ($player, $level, $translation, $type, $position, $operationId): array {
+        return DB::transaction(function () use ($player, $level, $translation, $type, $operationId): array {
             $progress = $this->levelProgressRepository->lockOrCreate($player, $level);
 
             if ($progress->status === PlayerLevelProgressStatus::Completed) {
@@ -55,7 +54,7 @@ class LevelHintService
             $answerGraphemes = $this->answerNormalizer->splitGraphemes($translation->answer_display);
 
             $outcome = match ($type) {
-                HintType::RevealLetter => $this->revealLetter($player, $progress, $state, $translation, $position, $operationId),
+                HintType::RevealLetter => $this->revealLetter($player, $progress, $state, $translation, $operationId),
                 HintType::RemoveWrongLetters => $this->removeWrongLetters($player, $progress, $state, $translation, $operationId),
                 HintType::RevealAnswer => $this->revealAnswer($player, $progress, $state, $answerGraphemes, $translation, $operationId),
             };
@@ -75,22 +74,13 @@ class LevelHintService
         PlayerLevelProgress $progress,
         LevelHintState $state,
         LevelTranslation $translation,
-        ?int $position,
         int $operationId,
     ): array {
         $answer = $this->answerNormalizer->splitGraphemes($translation->answer_display);
-        $target = $position ?? $this->firstUnrevealedPosition($state, $answer);
+        $target = $this->firstUnrevealedPosition($state, $answer);
 
         if ($target === null) {
             return ['charged' => false, 'cost' => 0, 'position' => null, 'removed_tiles' => [], 'state' => $state];
-        }
-
-        if ($target < 1 || $target > count($answer) || $this->isSeparator($answer[$target - 1])) {
-            throw ApiException::unprocessable('hint_position_out_of_range', 'The requested position is not a letter in the answer.');
-        }
-
-        if ($state->isPositionRevealed($target)) {
-            return ['charged' => false, 'cost' => 0, 'position' => $target, 'removed_tiles' => [], 'state' => $state];
         }
 
         $cost = (int) config('game.hints.reveal_letter');

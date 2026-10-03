@@ -25,7 +25,6 @@ class LevelHintController extends Controller
 
         $locale = $request->selectedLocale();
         $type = $request->hintType();
-        $position = $request->position();
         $key = $request->idempotencyKey();
 
         return $idempotencyRequestExecutor->execute(
@@ -36,14 +35,12 @@ class LevelHintController extends Controller
                 'level_id' => (int) $level->id,
                 'locale' => $locale,
                 'type' => $type->value,
-                'position' => $position,
             ],
             operationCallback: fn (IdempotencyRequest $operation): array => $levelHintService->apply(
                 player: $player,
                 level: $level,
                 locale: $locale,
                 type: $type,
-                position: $position,
                 operationId: (int) $operation->id,
             ),
         );

@@ -23,12 +23,16 @@ class LandingController extends Controller
 
     public function index(?string $locale = null): View
     {
+        $defaultLocale = $this->resolveLocale(null);
         $locale = $this->resolveLocale($locale);
 
         app()->setLocale($locale);
 
         return view('landing.index', [
             'locale' => $locale,
+            'canonicalUrl' => $locale === $defaultLocale
+                ? route('home')
+                : route('home.locale', $locale),
             'localeLabels' => self::LOCALE_LABELS,
             'categories' => $this->categories($locale),
             'publishedLevelsCount' => $this->publishedLevelsCount(),

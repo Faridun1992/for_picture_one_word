@@ -24,12 +24,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-    <title>{{ __('landing.meta.title') }} — {{ __('landing.brand.name') }}</title>
+    <title>{{ __('landing.meta.title') }}</title>
     <meta name="description" content="{{ __('landing.meta.description') }}">
+    <link rel="canonical" href="{{ $canonicalUrl }}">
 
     <meta property="og:type" content="website">
-    <meta property="og:title" content="{{ __('landing.meta.title') }} — {{ __('landing.brand.name') }}">
+    <meta property="og:title" content="{{ __('landing.meta.title') }}">
     <meta property="og:description" content="{{ __('landing.meta.description') }}">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
     <meta property="og:locale" content="{{ $locale }}">
     <meta name="theme-color" content="#f7f5ef">
 
@@ -45,7 +47,7 @@
 
 <header class="lp-header" id="lp-top">
     <div class="lp-shell lp-header__bar">
-        <a class="lp-logo" href="{{ route('home') }}">
+        <a class="lp-logo" href="{{ $canonicalUrl }}">
             <span class="lp-logo__mark" aria-hidden="true">
                 <span></span><span></span><span></span><span></span>
             </span>

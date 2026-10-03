@@ -63,6 +63,32 @@ class LandingPageTest extends TestCase
         $response->assertSee(route('home.locale', 'en'), false);
     }
 
+    public function test_default_locale_page_is_canonical_at_the_root_url(): void
+    {
+        config(['app.locale' => 'ru']);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="'.route('home').'">', false);
+    }
+
+    public function test_non_default_locale_page_points_to_its_own_canonical_url(): void
+    {
+        config(['app.locale' => 'ru']);
+
+        $this->get(route('home.locale', 'en'))
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="'.route('home.locale', 'en').'">', false);
+    }
+
+    public function test_landing_page_title_does_not_repeat_the_brand_name(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('<title>'.trans('landing.meta.title').'</title>', false)
+            ->assertDontSee(trans('landing.meta.title').' — '.trans('landing.brand.name'), false);
+    }
+
     public function test_landing_page_uses_localized_categories_and_published_puzzle_count(): void
     {
         $this->seed(CategorySeeder::class);

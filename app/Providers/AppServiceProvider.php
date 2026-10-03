@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Models\Player;
 use App\Models\User;
+use App\Services\Analytics\AnalyticsProvider;
+use App\Services\Analytics\LogAnalyticsProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -17,7 +19,10 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      */
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->bind(AnalyticsProvider::class, LogAnalyticsProvider::class);
+    }
 
     /**
      * Bootstrap any application services.

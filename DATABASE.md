@@ -13,7 +13,7 @@ players 1 ── * idempotency_requests
 users/players 1 ── * personal_access_tokens (polymorphic tokenable)
 ```
 
-Daily challenges, achievements, leaderboard snapshots, purchases и ad events не входят в MVP и добавляются в своих фазах.
+Daily challenges, achievements, leaderboard snapshots, purchases и ad events добавляются отдельными задачами. TASK-062 пока не создаёт таблицу аналитики: события передаются через интерфейс адаптера в ротируемый лог, а хранилище агрегатов для воронки будет определено в TASK-064.
 
 ## Таблицы MVP
 
@@ -98,12 +98,12 @@ Runtime PHP в local/stage/prod образах включает `intl` и `mbstr
 | `id` | BIGINT UNSIGNED | PK |
 | `level_id` | BIGINT UNSIGNED | FK → levels.id, cascade delete только для черновика |
 | `locale` | VARCHAR(16) | NOT NULL |
-| `answer_display` | VARCHAR(100) | NOT NULL, Unicode UTF-8 |
+| `answer_display` | VARCHAR(100) | NOT NULL, Unicode UTF-8; ограничение 1–12 grapheme clusters валидируется приложением |
 | `answer_normalized` | VARCHAR(200) | NOT NULL, Unicode NFC/casefold |
-| `letter_tiles` | JSON | NOT NULL, массив строк-графем; правильные + лишние плитки |
+| `letter_tiles` | JSON | NOT NULL, ровно 12 элементов для опубликованного перевода: ответные + отвлекающие графемы |
 | `created_at`, `updated_at` | TIMESTAMP | NOT NULL |
 
-Уникальность `(level_id, locale)` одновременно поддерживает поиск переводов по `level_id`. JSON нужен для локализованного набора графем переменной длины; его валидация производится приложением. `answer_normalized` рассчитывается серверным нормализатором и никогда не отдаётся игровому endpoint.
+Уникальность `(level_id, locale)` одновременно поддерживает поиск переводов по `level_id`. JSON содержит ровно 12 отдельных плиток-графем; администратор задаёт distractors, а приложение валидирует их количество, Unicode-графемность и покрытие ответа с учётом повторов перед сохранением/публикацией. Ответ ограничен 12 графемами; для ответа из 12 графем дополнительные отвлекающие буквы не добавляются. `answer_normalized` рассчитывается серверным нормализатором и никогда не отдаётся игровому endpoint.
 
 ### `level_images`
 
@@ -169,7 +169,7 @@ Admin-статистика TASK-046 агрегируется по `level_id` и 
 
 `WalletTransaction` — append-only модель: Eloquent update/delete запрещены; база ограничивает удаление игрока, пока остаётся его финансовая история. TASK-032/033 проводят welcome grant, rewards и списания только через серверный `WalletBalanceManager` в транзакции с row lock. Уникальность бизнес-ссылки обеспечивает одноразовые награды: ответ/завершение ссылаются на конкретный level разными `reference_type`, milestone — на порог, welcome grant — на Player, hint debit — на idempotency operation ID. Клиент не передаёт баланс, reward amount или hint price.
 
-Начальная экономика хранится в `config/game.php`: старт +300 Coins; правильный ответ +10; завершение загадки +50; milestones 50/100/500/1000 решённых загадок +150/+300/+300/+500 одноразово; daily +100 за первое прохождение конкретной задачи; streak 5/10 +20/+50; rewarded ad +50, максимум 5 в сутки. Цены подсказок: `reveal_letter` 30, `remove_wrong_letters` 40, `reveal_answer` 100 Coins; количество удаляемых неверных плиток — серверная настройка. Daily/streak/ad ledger операции добавляются соответствующими задачами.
+Начальная экономика хранится в `config/game.php`: старт +300 Coins; правильный ответ +10; завершение загадки +50; milestones 50/100/500/1000 решённых загадок +150/+300/+300/+500 одноразово; daily +100 за первое прохождение конкретной задачи; streak 5/10 +20/+50; rewarded ad +50, максимум 5 в сутки. Целевые цены подсказок после TASK-079: `reveal_letter` 60, `remove_wrong_letters` 40, `reveal_answer` 100 Coins; до изменения серверной конфигурации фактическая цена `reveal_letter` остаётся 30. Количество удаляемых неверных плиток — серверная настройка.
 
 ### `idempotency_requests`
 

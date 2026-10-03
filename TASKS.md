@@ -4,13 +4,13 @@
 
 ## Current State
 
-Current phase: Phase 5 — Mobile MVP (in progress)
-Current task: TASK-059 — native builds and device gameplay verification (blocked)
-Last completed task: TASK-058
-Blocked tasks: TASK-059 — Windows Android Studio/SDK cannot be invoked from this WSL shell; iOS requires macOS/Xcode
-Next recommended task: TASK-059 — build through Windows Android Studio or a cloud runner and test on Android; iOS requires macOS/Xcode
-Last updated: 2026-09-27
-Git state: Phase 5 changes are uncommitted on `main`; base is commit `f821815`
+Current phase: Phase 8 — Gameplay UX and level constraints
+Current task: TASK-076 — update home/game screens and resume the unfinished level
+Last completed task: TASK-062
+Blocked tasks: TASK-059 — native device builds require Windows Android Studio or macOS/Xcode; TASK-061 — daily boundary timezone awaits product choice
+Next recommended task: TASK-076 — implement the approved visual direction and show the current unfinished level on home
+Last updated: 2026-10-03
+Git state: branch `main`; preserve existing uncommitted TASK-062 analytics, Android debug, logging and private-image Nginx changes
 
 ## Phase 0 — Анализ и проектирование
 
@@ -52,7 +52,7 @@ Git state: Phase 5 changes are uncommitted on `main`; base is commit `f821815`
 - [x] TASK-030 — Реализовать создание гостевой сессии и отзыв токена для `Player` (после TASK-020)
 - [x] TASK-031 — Реализовать категории и выдачу опубликованных уровней
 - [x] TASK-032 — Реализовать проверку попытки и одноразовое начисление награды (+10 за ответ, +50 за завершение, milestones 50/100/500/1000: +150/+300/+300/+500 Coins; стартовый баланс +300 Coins)
-- [x] TASK-033 — Реализовать три подсказки с атомарным списанием и идемпотентностью (`reveal_letter` 30, `remove_wrong_letters` 40, `reveal_answer` 100 Coins)
+- [x] TASK-033 — Реализовать три подсказки с атомарным списанием и идемпотентностью (`reveal_letter` сейчас 30; целевая цена 60 в TASK-079; другие цены без изменений)
 - [x] TASK-034 — Реализовать прогресс и настройки текущего `Player`
 - [x] TASK-035 — Добавить авторизацию, policies, throttling и валидацию API
 - [x] TASK-036 — Написать API-тесты Unicode, ответов, повторов, подсказок, недостатка Coins и изоляции пользователей (после TASK-032/033)
@@ -83,8 +83,8 @@ Git state: Phase 5 changes are uncommitted on `main`; base is commit `f821815`
 ## Phase 6 — Ежедневная игра и аналитика
 
 - [x] TASK-060 — Утвердить правила daily challenge и награды (+100 Coins за первое прохождение; пропуск без штрафа)
-- [ ] TASK-061 — Добавить назначение и прохождение daily challenge
-- [ ] TASK-062 — Определить каталог аналитических событий и адаптер поставщика
+- [!] TASK-061 — Добавить назначение и прохождение daily challenge
+- [x] TASK-062 — Определить каталог аналитических событий и адаптер поставщика
 - [ ] TASK-063 — Передавать и проверять события начала/окончания уровня и подсказок
 - [ ] TASK-064 — Добавить показатели воронки уровней без персональных данных
 
@@ -97,11 +97,20 @@ Git state: Phase 5 changes are uncommitted on `main`; base is commit `f821815`
 - [ ] TASK-074 — Добавить покупку отключения рекламы при наличии бизнес-решения
 - [ ] TASK-075 — Пересмотреть offline объём по фактическим метрикам использования
 
+## Phase 8 — Уточнения UX и ограничений уровня (2026-10-03)
+
+- [ ] TASK-076 — Обновить домашний/игровой экраны по визуальному направлению референсов; если есть незавершённая загадка, показывать именно её и действие «Продолжить», иначе — следующий доступный уровень и «Играть»
+- [ ] TASK-077 — Гарантировать ровно 12 отдельных плиток для каждого локализованного уровня: ответные Unicode-графемы с нужной кратностью плюс вводимые администратором отвлекающие буквы до 12; проверить/исправить существующие опубликованные переводы, перемешивать набор, адаптивно отображать 6×2
+- [ ] TASK-078 — Ограничить каждый локализованный ответ максимум 12 Unicode grapheme clusters; валидировать длину и набор плиток при сохранении перевода и публикации из админки
+- [ ] TASK-079 — Изменить `reveal_letter` с 30 на 60 Coins, добавить кнопку `A` с отображением цены и атомарное открытие сервером первой слева закрытой буквы; сохранить идемпотентность и отказ без изменений при нехватке Coins
+- [ ] TASK-080 — Полностью локализовать все мобильные экраны/состояния на RU/TJ/EN через централизованные locale-каталоги; проверять полноту переводов автоматически, запретить hardcoded UI-тексты и silent fallback, требовать переводы для каждого нового раздела (ADR-004)
+
 ## Блокирующие решения
 
 - TASK-059: Android Studio (3.3 GiB) и Android SDK (1.6 GiB) установлены на Windows, но данный WSL shell не может вызвать Windows JBR/SDK binaries; iOS native build требует macOS/Xcode. `npx cap sync` для обеих платформ и Vite production build проходят. Сборку Android можно запустить в Windows Android Studio или cloud runner; затем необходима проверка игрового цикла на устройстве.
 - TASK-032/033: блокирующих решений нет. Утверждённые суммы: +300 welcome, +10 правильный ответ, +50 завершение, daily +100, streak 5/10: +20/+50, milestones 50/100/500/1000: +150/+300/+300/+500 Coins; hints 30/40/100; rewarded ad +50, максимум 5/сутки. Значения централизованы в `config/game.php`. Daily/streak/rewarded-ad выполнение остаётся в отдельных задачах.
-- Перед daily phase: часовой пояс и правила смены дня.
+- TASK-061: нужен выбор часового пояса и границы суток для Daily Challenge; вопрос задан пользователю (UTC, Dushanbe или часовой пояс устройства). До решения назначение ежедневной задачи не реализуется.
+- TASK-032/033: реализация текущей серверной экономики завершена. Новая цена первой буквенной подсказки 60 Coins применяется задачей TASK-079; остальные цены не меняются.
 - Перед аккаунтной фазой: выбрать mobile sign-in providers и восстановление доступа на другом устройстве; связь существующего `Player` с `User` уже зафиксирована в ADR-001.
 - Перед monetization phase: страны запуска, провайдеры покупок/рекламы и юридические требования.
 
@@ -109,6 +118,6 @@ Git state: Phase 5 changes are uncommitted on `main`; base is commit `f821815`
 
 - Валюта одна: Coins. Стартовый баланс нового Player: +300 один раз.
 - Награды: правильный ответ +10; завершение загадки +50; daily challenge +100; streak из 5/10 ответов +20/+50; milestone за 50/100/500/1000 загадок +150/+300/+300/+500 (каждый порог один раз).
-- Подсказки: `reveal_letter` — 30; `remove_wrong_letters` — 40 и удаление 2 неверных плиток (число конфигурируется); `reveal_answer` — 100 Coins и завершение загадки.
+- Подсказки: `reveal_letter` — целевая цена 60 Coins (задача TASK-079; текущая реализация пока 30); `remove_wrong_letters` — 40 и удаление 2 неверных плиток (число конфигурируется); `reveal_answer` — 100 Coins и завершение загадки.
 - Rewarded Ad: +50 после подтверждения просмотра, максимум 5 в сутки на Player. Interstitial: ориентир после 4–6 загадок, cooldown 90 секунд; исключения при активной загадке, запуске приложения, сразу после rewarded ad; Premium отключает Interstitial и не предоставляет неограниченные бесплатные hints.
 - Реализуемые суммы и количество подсказки централизованы в `config/game.php`; выполнение daily, streak, рекламной выдачи и Premium остаётся в профильных задачах.

@@ -1,5 +1,13 @@
 {
     "appId": "com.example.fourpictureoneword",
     "appName": "Four Pictures One Word",
-    "webDir": "dist"
+    "webDir": "dist",
+    "server": {
+        "androidScheme": "http"
+    },
+    "plugins": {
+        "CapacitorHttp": {
+            "enabled": true
+        }
+    }
 }

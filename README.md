@@ -5,7 +5,7 @@
 Последнее обновление: 2026-04-05
 
 ## Обзор
-- Бэкенд: PHP 8.4, Laravel 13
+- Бэкенд: PHP 8.5.11, Laravel 13
 - Фронтенд: Vite 5, ES Modules, SCSS; Bootstrap 5
 - Поиск/индексация: Laravel Scout + Manticore
 - Хранилище данных: MySQL 8.4, Redis
@@ -36,7 +36,7 @@
 Проект можно запускать нативно или через Docker.
 
 Нативно (без Docker):
-- PHP 8.4 со следующими расширениями: curl, dom, exif, iconv, libxml, openssl, simplexml, zend-opcache
+- PHP 8.5.11 со следующими расширениями: curl, dom, exif, iconv, intl, libxml, mbstring, openssl, simplexml, zend-opcache
 - Composer 2
 - Node.js 20+ (Vite требует современный Node; Docker‑образ использует Node 22)
 - MySQL 8.4, Redis, ClickHouse, Manticore (локально опционально; в Docker‑настройке требуется)

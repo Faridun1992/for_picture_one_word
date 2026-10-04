@@ -6,7 +6,7 @@ stages:
 # ─── TEST ────────────────────────────────────────────────────────────────────
 test:
   stage: test
-  image: php:8.4.20-fpm
+  image: php:8.5.11-fpm
 
   services:
     - name: mysql:8.4.8
@@ -40,10 +40,10 @@ test:
   before_script:
     # Устанавливаем системные зависимости
     - apt-get update -qq
-    - apt-get install -y --no-install-recommends ca-certificates curl openssl unzip git libpng-dev libzip-dev libfreetype6-dev libjpeg62-turbo-dev libwebp-dev pkg-config
+    - apt-get install -y --no-install-recommends ca-certificates curl openssl unzip git libpng-dev libzip-dev libicu-dev libfreetype6-dev libjpeg62-turbo-dev libwebp-dev pkg-config
     - update-ca-certificates
     - rm -rf /var/lib/apt/lists/*
-    - docker-php-ext-install pdo pdo_mysql zip exif pcntl
+    - docker-php-ext-install pdo pdo_mysql zip exif pcntl intl
     - docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp && docker-php-ext-install -j$(nproc) gd
     - pecl install redis && docker-php-ext-enable redis
     - echo "memory_limit=-1" > /usr/local/etc/php/conf.d/memory.ini

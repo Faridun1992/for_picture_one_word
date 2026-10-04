@@ -1,4 +1,4 @@
-FROM php:8.4.20-cli
+FROM php:8.5.11-cli
 
 ARG user
 ARG uid
@@ -20,10 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pngquant \
     gifsicle \
     libavif-bin \
-    libmagickwand-dev \
     supervisor \
-    && pecl install imagick-3.8.1 \
-    && docker-php-ext-enable imagick \
     && docker-php-ext-install pdo_mysql bcmath zip exif pcntl intl \
     && docker-php-ext-configure gd --with-freetype --with-webp --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd \

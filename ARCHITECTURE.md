@@ -32,7 +32,7 @@ Web-admin (Laravel web routes + Blade/AdminLTE already present in repo)
 
 ## Текущее состояние репозитория (аудит TASK-010)
 
-- В репозитории Laravel 13/PHP 8.4 и Vite. `vite.config.js` собирает только существующие web assets; отдельный мобильный клиент и базовый API v1 находятся в `mobile/` и `routes/api.php`.
+- В репозитории Laravel 13/PHP 8.5.11 и Vite. Local/stage/prod используют PHP-FPM 8.5.11, Horizon/Supervisor — PHP CLI 8.5.11; CI также выполняется на PHP 8.5.11. `vite.config.js` собирает только существующие web assets; отдельный мобильный клиент и базовый API v1 находятся в `mobile/` и `routes/api.php`.
 - В `mobile/` создан изолированный Capacitor 8 клиент на JavaScript/Vite; API base URL централизован в `mobile/src/config/api.js` и берётся только из `VITE_API_BASE_URL`. Native shells Android/iOS созданы; app ID пока временный `com.example.fourpictureoneword`.
 - Уже настроены web-аутентификация, `User` с ролями Spatie и AdminLTE. Это существующий backend с пользовательскими функциями, поэтому игровые изменения должны добавляться отдельными миграциями и сохранять совместимость текущих пользователей/администраторов.
 - `/` — публичный лендинг игры (`route('home')`), локализованные версии доступны по `/{locale}` для `ru`, `tj`, `en` (`route('home.locale')`); аутентификация не требуется, тексты лежат в `lang/{locale}/landing.php`, стили — в `resources/sass/landing.scss` и собираются отдельным Vite entry `landing.scss`.
@@ -56,7 +56,7 @@ Web-admin (Laravel web routes + Blade/AdminLTE already present in repo)
 - Фактическая MySQL `users` совпадает с исходной миграцией: 9 колонок, обязательные уникальные email и пароль, без `preferred_locale`/`is_guest`. Таблицы `players`, `player_level_progress`, `player_wallets` и `wallet_transactions` описаны новыми миграциями и проверены SQLite feature-тестами; их применение в локальную MySQL ожидает доступности Docker.
 - `User` содержит fillable-атрибуты, которых нет в фактической таблице `users` (например `block`, `avatar`, `nickname`, `country`, `timezone`). До разработки, использующей эти поля, проверить связанные функции приложения и решить, нужны ли отдельные миграции или модель очищается от устаревших атрибутов.
 - MySQL/Redis определены в конфигурации и Compose; конфигурация также содержит ClickHouse и S3-compatible диски. Host приложения на локальной машине не видит внутреннее имя MySQL; Artisan команды для этой конфигурации запускаются внутри `php` контейнера.
-- В PHP runtime local/stage/prod образов включён `ext-intl` (ICU) вместе с `mbstring`; Composer явно требует расширение для NFC нормализации таджикских/кириллических строк.
+- В PHP runtime local/stage/prod образов и CI включены `ext-intl` (ICU) и `mbstring`; Composer явно требует расширение для NFC нормализации таджикских/кириллических строк. Composer допускает PHP `^8.5`, Docker образы закреплены на 8.5.11.
 - `AnswerNormalizer` сохраняет отображаемый ответ отдельно от Unicode-нормализованного ответа, сегментирует плитки по графемам и не применяет языковые правила, специфичные для русского.
 - Старые миграции уже применены. Не редактировать их; игровые изменения вносить отдельными новыми миграциями.
 - Локальные контейнеры MySQL и Redis healthy; Laravel успешно читает схему MySQL, а Predis ping возвращает `PONG`. Контейнеры работают, но Android/iOS native builds в этой среде не выполнялись.

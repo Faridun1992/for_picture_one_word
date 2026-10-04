@@ -2,6 +2,8 @@
 
 Статус: health, guest session/revoke, catalog, level attempts и hints реализованы. Базовый URL `/api/v1`. JSON UTF-8. Время ISO 8601 UTC. Ответы ошибок единообразны: `{"message":"...","code":"...","errors":{}}`. Токен — `Authorization: Bearer …`. Игровой bearer token принадлежит `Player`; все игровые маршруты ограничиваются по IP и player ID. Существующая web-аутентификация `User` не даёт доступ к игровым маршрутам.
 
+Сервер API работает на PHP 8.5.11 (Composer platform `^8.5`); локальный, stage, production и CI runtime используют PHP 8.5.11. Контракт маршрутов от смены PHP не меняется.
+
 ## Общие правила
 
 - `Accept-Language: ru`, `tj` или `en`; неизвестный язык даёт 422, отсутствующий перевод — fallback на `en` только если это явно задано каталогом, иначе 404/422.

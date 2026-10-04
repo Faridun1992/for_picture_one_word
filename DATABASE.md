@@ -50,7 +50,7 @@ Daily challenges, achievements, leaderboard snapshots, purchases и ad events д
 
 Laravel Sanctum использует полиморфный `personal_access_tokens.tokenable_type/tokenable_id`. Для мобильной игры токен выпускает аутентифицируемая модель `Player` с `HasApiTokens`; web session и существующая модель `User` остаются отдельными. Игровые маршруты должны принимать только principal типа `Player`. Сырой bearer token возвращается один раз и хранится на устройстве в защищённом хранилище ОС: iOS Keychain (`ThisDeviceOnly`), Android — AES-GCM ciphertext в SharedPreferences с ключом Android Keystore. В браузерном режиме токен существует только в памяти страницы, `localStorage` и `sessionStorage` не используются.
 
-Runtime PHP в local/stage/prod образах включает `intl` и `mbstring`; `composer.json` требует `ext-intl`. Проверено в локальном PHP 8.4 контейнере: класс `Normalizer` доступен.
+Runtime PHP 8.5.11 в local/stage/prod образах и CI включает `intl` и `mbstring`; `composer.json` требует `ext-intl`. Проверено на PHP 8.5.0: класс `Normalizer` доступен. Миграции и схема БД от версии PHP не меняются.
 
 Мобильные TASK-057/058 хранят несекретные снимки профиля/прогресса, каталога и игрового контента, локальный черновик ответа и ожидающее действие с `Idempotency-Key` в IndexedDB устройства. Это не серверная БД и не источник истины для баланса или результата; bearer token туда не записывается. Изменения схемы API/БД для кэша и повтора не нужны.
 

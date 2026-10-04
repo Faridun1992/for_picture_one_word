@@ -6,11 +6,11 @@
 
 Current phase: Phase 8 — Gameplay UX and level constraints
 Current task: TASK-059 — verify the native Android/iOS builds and gameplay cycle
-Last completed task: TASK-091
+Last completed task: TASK-092
 Blocked tasks: TASK-061 — daily boundary timezone awaits product choice
 Next recommended task: TASK-059 — complete device-level gameplay verification from the user's launch check
-Last updated: 2026-10-03
-Git state: branch `main`; TASK-086 through TASK-091 are complete; landing page committed in 9b46b56, follow-up fixes (SEO canonical/title) and doc updates are uncommitted
+Last updated: 2026-10-04
+Git state: branch `main`; TASK-092 PHP 8.5.11 runtime update is complete and uncommitted; TASK-086 through TASK-091 remain complete, TASK-059 remains in progress
 
 ## Phase 0 — Анализ и проектирование
 
@@ -105,6 +105,10 @@ Git state: branch `main`; TASK-086 through TASK-091 are complete; landing page c
 - [x] TASK-089 — Изменить `reveal_letter` с 30 на 60 Coins, добавить кнопку `A` с отображением цены, запретить выбор позиции клиентом и атомарно открывать первую слева закрытую букву; сохранить идемпотентность и отказ без изменений при нехватке Coins
 - [x] TASK-090 — Полностью локализовать все мобильные экраны/состояния на RU/TJ/EN через централизованные locale-каталоги; проверять полноту переводов автоматически, запретить hardcoded UI-тексты и silent fallback, требовать переводы для каждого нового раздела (ADR-004)
 - [x] TASK-091 — Сделать публичный лендинг игры по маршруту `home`: `GET /` и `GET /{locale}` для `ru`/`tj`/`en`, адаптивная вёрстка в SCSS с отдельным Vite entry, тексты в `lang/{locale}/landing.php`, категории/счётчик опубликованных уровней/цены из конфигурации, ссылки на магазины из `game.distribution`; админ-дашборд перенести на `/admin/dashboard`, старый `/home` больше не маршрутизируется
+
+## Phase 9 — Runtime maintenance
+
+- [x] TASK-092 — Перевести Composer, Docker runtime и CI на PHP 8.5.11 и устранить несовместимости конфигурации
 
 ## Блокирующие решения
 
